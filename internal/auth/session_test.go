@@ -77,3 +77,38 @@ func TestSession_RandomString(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, s)
 }
+
+func TestRequireUser_AllowsValidCookie(t *testing.T) {
+	sm := auth.NewSessionManager("test-secret")
+	called := false
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		uid, ok := auth.UserIDFromContext(r.Context())
+		require.True(t, ok)
+		assert.Equal(t, int64(42), uid)
+	})
+
+	rr := httptest.NewRecorder()
+	sm.SetUser(rr, 42)
+	c := rr.Result().Cookies()[0]
+
+	req := httptest.NewRequest("GET", "/", nil)
+	req.AddCookie(c)
+
+	rr2 := httptest.NewRecorder()
+	sm.RequireUser()(next).ServeHTTP(rr2, req)
+
+	assert.True(t, called)
+	assert.Equal(t, http.StatusOK, rr2.Code)
+}
+
+func TestRequireUser_Rejects401WithoutCookie(t *testing.T) {
+	sm := auth.NewSessionManager("test-secret")
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("should not be called")
+	})
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/", nil)
+	sm.RequireUser()(next).ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+}
