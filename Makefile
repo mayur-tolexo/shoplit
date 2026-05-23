@@ -1,4 +1,4 @@
-.PHONY: help build test lint run-api run-redirect migrate-up migrate-down sqlc install-tools up up-infra down down-clean logs ps
+.PHONY: help build test lint run-api run-redirect run-web web-install migrate-up migrate-down sqlc install-tools up up-infra down down-clean logs ps
 
 GO ?= go
 
@@ -23,8 +23,14 @@ install-tools: ## Install migrate, sqlc, golangci-lint at pinned versions
 	$(GO) install github.com/sqlc-dev/sqlc/cmd/sqlc@$(SQLC_VERSION)
 	$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_VERSION)
 
-up: build up-infra migrate-up ## ONE COMMAND (detached): build, infra, migrate, then run both go services in the background
+up: build up-infra migrate-up ## ONE COMMAND (detached): build, infra, migrate, start go services + web (Next.js dev) in the background
 	@./scripts/start.sh
+
+run-web: ## Run the Next.js dev server in the foreground (Ctrl-C stops it)
+	cd web && pnpm dev
+
+web-install: ## Install web/ deps (one-time; auto-run by `make up` if missing)
+	cd web && pnpm install
 
 up-infra: ## Start postgres + redis only (no go services, no migrations)
 	docker compose up -d --wait
@@ -37,15 +43,15 @@ down-clean: ## Stop everything AND wipe data volumes (destroys local DB)
 	@./scripts/stop.sh
 	docker compose down -v
 
-logs: ## Tail go service logs (Ctrl-C stops the tail, NOT the services)
+logs: ## Tail go + web service logs (Ctrl-C stops the tail, NOT the services)
 	@mkdir -p .logs
-	@touch .logs/api.log .logs/redirect.log
-	tail -F .logs/api.log .logs/redirect.log
+	@touch .logs/api.log .logs/redirect.log .logs/web.log
+	tail -F .logs/api.log .logs/redirect.log .logs/web.log
 
 logs-infra: ## Tail postgres + redis logs from compose
 	docker compose logs -f
 
-ps: ## Show running shoplit processes (compose + go services)
+ps: ## Show running shoplit processes (compose + go services + web)
 	@docker compose ps
 	@echo ""
 	@if [ -f .pids/api.pid ] && kill -0 $$(cat .pids/api.pid) 2>/dev/null; then \
@@ -54,6 +60,9 @@ ps: ## Show running shoplit processes (compose + go services)
 	@if [ -f .pids/redirect.pid ] && kill -0 $$(cat .pids/redirect.pid) 2>/dev/null; then \
 	  echo "shoplit-redirect running (pid $$(cat .pids/redirect.pid))"; \
 	else echo "shoplit-redirect stopped"; fi
+	@if [ -f .pids/web.pid ] && kill -0 $$(cat .pids/web.pid) 2>/dev/null; then \
+	  echo "shoplit-web      running (pid $$(cat .pids/web.pid))"; \
+	else echo "shoplit-web      stopped"; fi
 
 build: ## Build both binaries
 	$(GO) build -o bin/shoplit-api ./cmd/shoplit-api
