@@ -5,6 +5,8 @@ import { Footer } from "@/components/footer";
 import { CartCard } from "@/components/cart-card";
 import { listMyCarts } from "@/lib/api-client";
 
+export const dynamic = "force-dynamic";
+
 export default async function LandingPage() {
   const exampleCarts = (await listMyCarts()).slice(0, 3);
   return (

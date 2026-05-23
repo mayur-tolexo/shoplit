@@ -4,6 +4,8 @@ import Link from "next/link";
 import { getCartBySlug } from "@/lib/api-client";
 import { ProductCard } from "@/components/product-card";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const cart = await getCartBySlug(params.slug);
   if (!cart) return { title: "Not found · shoplit" };

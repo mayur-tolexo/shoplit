@@ -4,6 +4,8 @@ import { listMyCarts } from "@/lib/api-client";
 import { CartCard } from "@/components/cart-card";
 import { EmptyState } from "@/components/empty-state";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const carts = await listMyCarts();
   return (
