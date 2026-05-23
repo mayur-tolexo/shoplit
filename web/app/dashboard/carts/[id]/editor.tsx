@@ -5,6 +5,23 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUp, ArrowDown, ExternalLink, GripVertical, Plus, Share2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ColorPicker } from "@/components/color-picker";
@@ -65,6 +82,35 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
     [ids[idx], ids[target]] = [ids[target], ids[idx]];
     try {
       const updated = await reorderProducts(cart.id, ids);
+      setCart(updated);
+    } catch {
+      toast.error("Couldn't reorder products.");
+    }
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const ids = cart.products.map((p) => p.id);
+    const oldIndex = ids.indexOf(String(active.id));
+    const newIndex = ids.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    const newIds = arrayMove(ids, oldIndex, newIndex);
+    // Optimistic update
+    setCart((c) => ({
+      ...c,
+      products: newIds.map((id) => c.products.find((p) => p.id === id)!).filter(Boolean),
+    }));
+
+    try {
+      const updated = await reorderProducts(cart.id, newIds);
       setCart(updated);
     } catch {
       toast.error("Couldn't reorder products.");
@@ -153,45 +199,30 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
               <p className="text-sm text-muted">No products yet. Click &ldquo;Add product&rdquo; to paste your first link.</p>
             )}
 
-            <ul className="space-y-2">
-              {cart.products.map((p, i) => (
-                <li key={p.id} className="flex items-center gap-3 p-3 rounded-lg border border-rule bg-cream">
-                  <GripVertical size={16} className="text-muted shrink-0" aria-hidden />
-                  <div className="relative w-12 h-12 rounded-md overflow-hidden bg-paper shrink-0">
-                    <Image src={p.imageUrl} alt="" fill sizes="48px" className="object-cover" unoptimized />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{p.title}</p>
-                    <p className="text-xs text-muted">{p.priceText}</p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => move(p.id, -1)}
-                      disabled={i === 0}
-                      aria-label="Move up"
-                      className="p-1 rounded hover:bg-paper disabled:opacity-30"
-                    >
-                      <ArrowUp size={14} />
-                    </button>
-                    <button
-                      onClick={() => move(p.id, +1)}
-                      disabled={i === cart.products.length - 1}
-                      aria-label="Move down"
-                      className="p-1 rounded hover:bg-paper disabled:opacity-30"
-                    >
-                      <ArrowDown size={14} />
-                    </button>
-                    <button
-                      onClick={() => removeProduct(p.id)}
-                      aria-label="Remove product"
-                      className="p-1 rounded hover:bg-paper text-muted hover:text-ink"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={cart.products.map((p) => p.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <ul className="space-y-2">
+                  {cart.products.map((p, i) => (
+                    <SortableProductRow
+                      key={p.id}
+                      product={p}
+                      isFirst={i === 0}
+                      isLast={i === cart.products.length - 1}
+                      onMoveUp={() => move(p.id, -1)}
+                      onMoveDown={() => move(p.id, +1)}
+                      onRemove={() => removeProduct(p.id)}
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
           </section>
 
           <div className="text-sm">
@@ -240,5 +271,76 @@ function PreviewCartPage({ cart }: { cart: Cart }) {
         )}
       </div>
     </div>
+  );
+}
+
+function SortableProductRow({
+  product,
+  isFirst,
+  isLast,
+  onMoveUp,
+  onMoveDown,
+  onRemove,
+}: {
+  product: Product;
+  isFirst: boolean;
+  isLast: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: product.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-3 p-3 rounded-lg border border-rule bg-cream"
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        aria-label="Drag to reorder"
+        className="cursor-grab active:cursor-grabbing text-muted shrink-0 p-1 -ml-1 rounded hover:bg-paper"
+      >
+        <GripVertical size={16} aria-hidden />
+      </button>
+      <div className="relative w-12 h-12 rounded-md overflow-hidden bg-paper shrink-0">
+        <Image src={product.imageUrl} alt="" fill sizes="48px" className="object-cover" unoptimized />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{product.title}</p>
+        <p className="text-xs text-muted">{product.priceText}</p>
+      </div>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={onMoveUp}
+          disabled={isFirst}
+          aria-label="Move up"
+          className="p-1 rounded hover:bg-paper disabled:opacity-30"
+        >
+          <ArrowUp size={14} />
+        </button>
+        <button
+          onClick={onMoveDown}
+          disabled={isLast}
+          aria-label="Move down"
+          className="p-1 rounded hover:bg-paper disabled:opacity-30"
+        >
+          <ArrowDown size={14} />
+        </button>
+        <button
+          onClick={onRemove}
+          aria-label="Remove product"
+          className="p-1 rounded hover:bg-paper text-muted hover:text-ink"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+    </li>
   );
 }
