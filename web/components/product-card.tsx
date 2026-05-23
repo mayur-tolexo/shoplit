@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import type { Product } from "@/lib/types";
@@ -12,6 +13,9 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, eagerImage = false }: ProductCardProps) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const imgSrc = imgFailed ? "/placeholder-product.svg" : product.imageUrl;
+
   const handleShop = (e: React.MouseEvent) => {
     e.preventDefault();
     toast.success(`Would redirect to ${retailerLabel(product.retailer)}`, {
@@ -25,7 +29,7 @@ export function ProductCard({ product, eagerImage = false }: ProductCardProps) {
       <a href="#" onClick={handleShop} aria-label={`Shop ${product.title} on ${retailerLabel(product.retailer)}`}>
         <div className="relative aspect-square bg-paper">
           <Image
-            src={product.imageUrl}
+            src={imgSrc}
             alt={product.title}
             fill
             sizes="(max-width: 768px) 100vw, 50vw"
@@ -33,6 +37,7 @@ export function ProductCard({ product, eagerImage = false }: ProductCardProps) {
             loading={eagerImage ? "eager" : "lazy"}
             className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             unoptimized
+            onError={() => setImgFailed(true)}
           />
         </div>
       </a>

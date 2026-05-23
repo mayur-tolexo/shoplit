@@ -92,7 +92,7 @@ export default async function LandingPage() {
           <p className="text-muted text-center mb-10">Tap to see what a follower sees.</p>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {exampleCarts.map((c) => (
-              <CartCard key={c.id} cart={c} />
+              <CartCard key={c.id} cart={c} href={`/c/${c.slug}`} />
             ))}
           </div>
         </section>

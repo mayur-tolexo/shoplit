@@ -2,10 +2,16 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Cart } from "@/lib/types";
 
-export function CartCard({ cart }: { cart: Cart }) {
+interface CartCardProps {
+  cart: Cart;
+  href?: string;
+}
+
+export function CartCard({ cart, href }: CartCardProps) {
+  const target = href ?? `/dashboard/carts/${cart.id}`;
   return (
     <Link
-      href={`/dashboard/carts/${cart.id}`}
+      href={target}
       className="block group rounded-xl overflow-hidden border border-rule bg-cream transition-all hover:shadow-md hover:-translate-y-0.5"
     >
       <div className="relative aspect-[16/10] bg-paper">

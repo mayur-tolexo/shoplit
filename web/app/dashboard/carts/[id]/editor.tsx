@@ -28,21 +28,33 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
   const patch = async (changes: Partial<Cart>) => {
     setCart((c) => ({ ...c, ...changes }));
     startTransition(async () => {
-      const updated = await updateCart(cart.id, changes);
-      setCart(updated);
+      try {
+        const updated = await updateCart(cart.id, changes);
+        setCart(updated);
+      } catch {
+        toast.error("Couldn't save changes. Please try again.");
+      }
     });
   };
 
   const addProduct = async (draft: Omit<Product, "id">) => {
-    const updated = await addProductToCart(cart.id, draft);
-    setCart(updated);
-    setAddOpen(false);
-    toast.success("Product added");
+    try {
+      const updated = await addProductToCart(cart.id, draft);
+      setCart(updated);
+      setAddOpen(false);
+      toast.success("Product added");
+    } catch {
+      toast.error("Couldn't add product. Check the URL and try again.");
+    }
   };
 
   const removeProduct = async (productId: string) => {
-    const updated = await removeProductFromCart(cart.id, productId);
-    setCart(updated);
+    try {
+      const updated = await removeProductFromCart(cart.id, productId);
+      setCart(updated);
+    } catch {
+      toast.error("Couldn't remove product.");
+    }
   };
 
   const move = async (productId: string, direction: -1 | 1) => {
@@ -51,8 +63,12 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
     const target = idx + direction;
     if (target < 0 || target >= ids.length) return;
     [ids[idx], ids[target]] = [ids[target], ids[idx]];
-    const updated = await reorderProducts(cart.id, ids);
-    setCart(updated);
+    try {
+      const updated = await reorderProducts(cart.id, ids);
+      setCart(updated);
+    } catch {
+      toast.error("Couldn't reorder products.");
+    }
   };
 
   return (
