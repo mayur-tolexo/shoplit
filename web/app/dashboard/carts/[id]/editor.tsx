@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUp, ArrowDown, ExternalLink, GripVertical, Plus, Share2, Trash2 } from "lucide-react";
+import { ArrowUp, ArrowDown, ExternalLink, GripVertical, Share2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   DndContext,
@@ -22,7 +22,6 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ColorPicker } from "@/components/color-picker";
 import { PhoneFrame } from "@/components/phone-frame";
@@ -40,7 +39,6 @@ import type { Cart, Product } from "@/lib/types";
 export function CartEditor({ initialCart }: { initialCart: Cart }) {
   const [cart, setCart] = useState<Cart>(initialCart);
   const [, startTransition] = useTransition();
-  const [addOpen, setAddOpen] = useState(false);
 
   const patch = async (changes: Partial<Cart>) => {
     setCart((c) => ({ ...c, ...changes }));
@@ -58,7 +56,6 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
     try {
       const updated = await addProductToCart(cart.id, draft);
       setCart(updated);
-      setAddOpen(false);
       toast.success("Product added");
     } catch {
       toast.error("Couldn't add product. Check the URL and try again.");
@@ -178,25 +175,18 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
             <ColorPicker value={cart.accentHex} onChange={(hex) => patch({ accentHex: hex })} />
           </section>
 
+          {/* Add product */}
+          <section>
+            <h2 className="font-serif text-2xl mb-4">Add a product</h2>
+            <PasteUrlPreview onResolved={addProduct} />
+          </section>
+
           {/* Products */}
           <section>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-serif text-2xl">Products ({cart.products.length})</h2>
-              <Dialog open={addOpen} onOpenChange={setAddOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="default"><Plus size={16} /> Add product</Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-lg">
-                  <DialogHeader>
-                    <DialogTitle className="font-serif text-2xl">Add a product</DialogTitle>
-                  </DialogHeader>
-                  <PasteUrlPreview onResolved={addProduct} />
-                </DialogContent>
-              </Dialog>
-            </div>
+            <h2 className="font-serif text-2xl mb-3">Products ({cart.products.length})</h2>
 
             {cart.products.length === 0 && (
-              <p className="text-sm text-muted">No products yet. Click &ldquo;Add product&rdquo; to paste your first link.</p>
+              <p className="text-sm text-muted">No products yet. Paste a link above to add your first product.</p>
             )}
 
             <DndContext
