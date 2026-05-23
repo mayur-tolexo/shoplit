@@ -32,6 +32,7 @@ done
 # the PID file went missing (shell crashed before stop.sh ran, etc.).
 pkill -f "bin/shoplit-api" 2>/dev/null || true
 pkill -f "bin/shoplit-redirect" 2>/dev/null || true
+pkill -f "pnpm.*-C.*web.*dev" 2>/dev/null || true
 pkill -f "node.*next/dist/bin/next" 2>/dev/null || true
 pkill -f "next-server" 2>/dev/null || true
 sleep 0.3
@@ -51,8 +52,10 @@ nohup ./bin/shoplit-redirect >"${LOGS_DIR}/redirect.log" 2>&1 &
 REDIRECT_PID=$!
 echo "$REDIRECT_PID" > "${PIDS_DIR}/redirect.pid"
 
-# Next.js dev runs from web/. Subshell so the cd doesn't leak.
-nohup sh -c 'cd web && pnpm dev' >"${LOGS_DIR}/web.log" 2>&1 &
+# Use pnpm's -C flag instead of a sh wrapper so the PID we track is pnpm's
+# (which forwards signals to its child `next dev` on SIGTERM), not a transient
+# sh process that would be orphaned by `kill $WEB_PID`.
+nohup pnpm -C web dev >"${LOGS_DIR}/web.log" 2>&1 &
 WEB_PID=$!
 echo "$WEB_PID" > "${PIDS_DIR}/web.pid"
 
