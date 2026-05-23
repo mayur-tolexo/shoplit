@@ -54,7 +54,6 @@ func run() error {
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 
 	r.Method(http.MethodGet, "/health", httpx.Health(pool, rc, cfg.Env))

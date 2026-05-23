@@ -5,7 +5,7 @@ GO ?= go
 # Pinned tool versions. Installed via `make install-tools` once per dev machine.
 MIGRATE_VERSION   = v4.17.1
 SQLC_VERSION      = v1.31.1
-GOLANGCI_VERSION  = v1.59.1
+GOLANGCI_VERSION  = v1.64.8
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## ' Makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "%-20s %s\n", $$1, $$2}'
