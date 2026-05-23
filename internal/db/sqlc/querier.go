@@ -6,13 +6,36 @@ package sqlcgen
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
+	// ─── CART ITEMS ────────────────────────────────────────────────────────────
+	AddCartItem(ctx context.Context, arg AddCartItemParams) (CartItem, error)
+	ArchiveCart(ctx context.Context, id int64) error
+	BumpCartViewsDaily(ctx context.Context, cartID int64) error
+	BumpClickDaily(ctx context.Context, linkID int64) error
+	// ─── CARTS ──────────────────────────────────────────────────────────────────
+	CreateCart(ctx context.Context, arg CreateCartParams) (Cart, error)
+	// ─── LINKS ──────────────────────────────────────────────────────────────────
+	CreateLink(ctx context.Context, arg CreateLinkParams) (Link, error)
+	GetCartByID(ctx context.Context, id int64) (Cart, error)
+	GetCartBySlug(ctx context.Context, slug string) (Cart, error)
+	GetLinkBySlug(ctx context.Context, slug string) (Link, error)
+	GetUserByGoogleSub(ctx context.Context, googleSub pgtype.Text) (User, error)
 	// internal/db/queries.sql
-	// Real queries will be added in later plans. sqlc needs at least one entry
-	// to generate, so we register a trivial one.
-	PingNow(ctx context.Context) (interface{}, error)
+	// ─── USERS ──────────────────────────────────────────────────────────────────
+	GetUserByID(ctx context.Context, id int64) (User, error)
+	// ─── ANALYTICS (writes) ────────────────────────────────────────────────────
+	InsertClickEvent(ctx context.Context, arg InsertClickEventParams) error
+	ListCartItems(ctx context.Context, cartID int64) ([]ListCartItemsRow, error)
+	ListCartsByUser(ctx context.Context, userID int64) ([]Cart, error)
+	NextCartItemPosition(ctx context.Context, cartID int64) (int32, error)
+	RemoveCartItem(ctx context.Context, arg RemoveCartItemParams) error
+	ReorderCartItem(ctx context.Context, arg ReorderCartItemParams) error
+	UpdateCart(ctx context.Context, arg UpdateCartParams) (Cart, error)
+	UpsertGoogleUser(ctx context.Context, arg UpsertGoogleUserParams) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

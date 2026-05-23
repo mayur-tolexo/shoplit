@@ -7,19 +7,518 @@ package sqlcgen
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const pingNow = `-- name: PingNow :one
+const addCartItem = `-- name: AddCartItem :one
 
-SELECT now() AS now
+INSERT INTO cart_items (cart_id, position, link_id, title, description, image_url, price_text, retailer)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id, cart_id, position, link_id, title, description, image_url, price_text, retailer, created_at
+`
+
+type AddCartItemParams struct {
+	CartID      int64       `json:"cart_id"`
+	Position    int32       `json:"position"`
+	LinkID      int64       `json:"link_id"`
+	Title       string      `json:"title"`
+	Description pgtype.Text `json:"description"`
+	ImageUrl    pgtype.Text `json:"image_url"`
+	PriceText   pgtype.Text `json:"price_text"`
+	Retailer    pgtype.Text `json:"retailer"`
+}
+
+// ─── CART ITEMS ────────────────────────────────────────────────────────────
+func (q *Queries) AddCartItem(ctx context.Context, arg AddCartItemParams) (CartItem, error) {
+	row := q.db.QueryRow(ctx, addCartItem,
+		arg.CartID,
+		arg.Position,
+		arg.LinkID,
+		arg.Title,
+		arg.Description,
+		arg.ImageUrl,
+		arg.PriceText,
+		arg.Retailer,
+	)
+	var i CartItem
+	err := row.Scan(
+		&i.ID,
+		&i.CartID,
+		&i.Position,
+		&i.LinkID,
+		&i.Title,
+		&i.Description,
+		&i.ImageUrl,
+		&i.PriceText,
+		&i.Retailer,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const archiveCart = `-- name: ArchiveCart :exec
+UPDATE carts SET archived_at = now() WHERE id = $1
+`
+
+func (q *Queries) ArchiveCart(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, archiveCart, id)
+	return err
+}
+
+const bumpCartViewsDaily = `-- name: BumpCartViewsDaily :exec
+INSERT INTO cart_views_daily (cart_id, day, views)
+VALUES ($1, current_date, 1)
+ON CONFLICT (cart_id, day) DO UPDATE SET views = cart_views_daily.views + 1
+`
+
+func (q *Queries) BumpCartViewsDaily(ctx context.Context, cartID int64) error {
+	_, err := q.db.Exec(ctx, bumpCartViewsDaily, cartID)
+	return err
+}
+
+const bumpClickDaily = `-- name: BumpClickDaily :exec
+INSERT INTO click_daily (link_id, day, clicks)
+VALUES ($1, current_date, 1)
+ON CONFLICT (link_id, day) DO UPDATE SET clicks = click_daily.clicks + 1
+`
+
+func (q *Queries) BumpClickDaily(ctx context.Context, linkID int64) error {
+	_, err := q.db.Exec(ctx, bumpClickDaily, linkID)
+	return err
+}
+
+const createCart = `-- name: CreateCart :one
+
+INSERT INTO carts (user_id, slug, title, description, cover_image_url, is_public)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, user_id, slug, title, description, cover_image_url, is_public, archived_at, created_at, updated_at
+`
+
+type CreateCartParams struct {
+	UserID        int64       `json:"user_id"`
+	Slug          string      `json:"slug"`
+	Title         string      `json:"title"`
+	Description   pgtype.Text `json:"description"`
+	CoverImageUrl pgtype.Text `json:"cover_image_url"`
+	IsPublic      bool        `json:"is_public"`
+}
+
+// ─── CARTS ──────────────────────────────────────────────────────────────────
+func (q *Queries) CreateCart(ctx context.Context, arg CreateCartParams) (Cart, error) {
+	row := q.db.QueryRow(ctx, createCart,
+		arg.UserID,
+		arg.Slug,
+		arg.Title,
+		arg.Description,
+		arg.CoverImageUrl,
+		arg.IsPublic,
+	)
+	var i Cart
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Slug,
+		&i.Title,
+		&i.Description,
+		&i.CoverImageUrl,
+		&i.IsPublic,
+		&i.ArchivedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const createLink = `-- name: CreateLink :one
+
+INSERT INTO links (slug, user_id, original_url, retailer, link_type, cart_id)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, slug, user_id, original_url, retailer, link_type, cart_id, created_at, disabled_at
+`
+
+type CreateLinkParams struct {
+	Slug        string      `json:"slug"`
+	UserID      int64       `json:"user_id"`
+	OriginalUrl string      `json:"original_url"`
+	Retailer    string      `json:"retailer"`
+	LinkType    string      `json:"link_type"`
+	CartID      pgtype.Int8 `json:"cart_id"`
+}
+
+// ─── LINKS ──────────────────────────────────────────────────────────────────
+func (q *Queries) CreateLink(ctx context.Context, arg CreateLinkParams) (Link, error) {
+	row := q.db.QueryRow(ctx, createLink,
+		arg.Slug,
+		arg.UserID,
+		arg.OriginalUrl,
+		arg.Retailer,
+		arg.LinkType,
+		arg.CartID,
+	)
+	var i Link
+	err := row.Scan(
+		&i.ID,
+		&i.Slug,
+		&i.UserID,
+		&i.OriginalUrl,
+		&i.Retailer,
+		&i.LinkType,
+		&i.CartID,
+		&i.CreatedAt,
+		&i.DisabledAt,
+	)
+	return i, err
+}
+
+const getCartByID = `-- name: GetCartByID :one
+SELECT id, user_id, slug, title, description, cover_image_url, is_public, archived_at, created_at, updated_at FROM carts WHERE id = $1 AND archived_at IS NULL
+`
+
+func (q *Queries) GetCartByID(ctx context.Context, id int64) (Cart, error) {
+	row := q.db.QueryRow(ctx, getCartByID, id)
+	var i Cart
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Slug,
+		&i.Title,
+		&i.Description,
+		&i.CoverImageUrl,
+		&i.IsPublic,
+		&i.ArchivedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getCartBySlug = `-- name: GetCartBySlug :one
+SELECT id, user_id, slug, title, description, cover_image_url, is_public, archived_at, created_at, updated_at FROM carts WHERE slug = $1 AND archived_at IS NULL AND is_public = true
+`
+
+func (q *Queries) GetCartBySlug(ctx context.Context, slug string) (Cart, error) {
+	row := q.db.QueryRow(ctx, getCartBySlug, slug)
+	var i Cart
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Slug,
+		&i.Title,
+		&i.Description,
+		&i.CoverImageUrl,
+		&i.IsPublic,
+		&i.ArchivedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getLinkBySlug = `-- name: GetLinkBySlug :one
+SELECT id, slug, user_id, original_url, retailer, link_type, cart_id, created_at, disabled_at FROM links WHERE slug = $1 AND disabled_at IS NULL
+`
+
+func (q *Queries) GetLinkBySlug(ctx context.Context, slug string) (Link, error) {
+	row := q.db.QueryRow(ctx, getLinkBySlug, slug)
+	var i Link
+	err := row.Scan(
+		&i.ID,
+		&i.Slug,
+		&i.UserID,
+		&i.OriginalUrl,
+		&i.Retailer,
+		&i.LinkType,
+		&i.CartID,
+		&i.CreatedAt,
+		&i.DisabledAt,
+	)
+	return i, err
+}
+
+const getUserByGoogleSub = `-- name: GetUserByGoogleSub :one
+SELECT id, email, phone, google_sub, display_name, avatar_url, handle, created_at, banned_at FROM users WHERE google_sub = $1
+`
+
+func (q *Queries) GetUserByGoogleSub(ctx context.Context, googleSub pgtype.Text) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByGoogleSub, googleSub)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Phone,
+		&i.GoogleSub,
+		&i.DisplayName,
+		&i.AvatarUrl,
+		&i.Handle,
+		&i.CreatedAt,
+		&i.BannedAt,
+	)
+	return i, err
+}
+
+const getUserByID = `-- name: GetUserByID :one
+
+
+SELECT id, email, phone, google_sub, display_name, avatar_url, handle, created_at, banned_at FROM users WHERE id = $1
 `
 
 // internal/db/queries.sql
-// Real queries will be added in later plans. sqlc needs at least one entry
-// to generate, so we register a trivial one.
-func (q *Queries) PingNow(ctx context.Context) (interface{}, error) {
-	row := q.db.QueryRow(ctx, pingNow)
-	var now interface{}
-	err := row.Scan(&now)
-	return now, err
+// ─── USERS ──────────────────────────────────────────────────────────────────
+func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Phone,
+		&i.GoogleSub,
+		&i.DisplayName,
+		&i.AvatarUrl,
+		&i.Handle,
+		&i.CreatedAt,
+		&i.BannedAt,
+	)
+	return i, err
+}
+
+const insertClickEvent = `-- name: InsertClickEvent :exec
+
+INSERT INTO click_events (link_id, occurred_at, country_code, user_agent_kind, referer_host)
+VALUES ($1, now(), $2, $3, $4)
+`
+
+type InsertClickEventParams struct {
+	LinkID        int64       `json:"link_id"`
+	CountryCode   pgtype.Text `json:"country_code"`
+	UserAgentKind pgtype.Text `json:"user_agent_kind"`
+	RefererHost   pgtype.Text `json:"referer_host"`
+}
+
+// ─── ANALYTICS (writes) ────────────────────────────────────────────────────
+func (q *Queries) InsertClickEvent(ctx context.Context, arg InsertClickEventParams) error {
+	_, err := q.db.Exec(ctx, insertClickEvent,
+		arg.LinkID,
+		arg.CountryCode,
+		arg.UserAgentKind,
+		arg.RefererHost,
+	)
+	return err
+}
+
+const listCartItems = `-- name: ListCartItems :many
+SELECT ci.id, ci.cart_id, ci.position, ci.link_id, ci.title, ci.description, ci.image_url, ci.price_text, ci.retailer, ci.created_at, l.slug AS link_slug, l.original_url
+FROM cart_items ci
+JOIN links l ON ci.link_id = l.id
+WHERE ci.cart_id = $1
+ORDER BY ci.position ASC
+`
+
+type ListCartItemsRow struct {
+	ID          int64              `json:"id"`
+	CartID      int64              `json:"cart_id"`
+	Position    int32              `json:"position"`
+	LinkID      int64              `json:"link_id"`
+	Title       string             `json:"title"`
+	Description pgtype.Text        `json:"description"`
+	ImageUrl    pgtype.Text        `json:"image_url"`
+	PriceText   pgtype.Text        `json:"price_text"`
+	Retailer    pgtype.Text        `json:"retailer"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	LinkSlug    string             `json:"link_slug"`
+	OriginalUrl string             `json:"original_url"`
+}
+
+func (q *Queries) ListCartItems(ctx context.Context, cartID int64) ([]ListCartItemsRow, error) {
+	rows, err := q.db.Query(ctx, listCartItems, cartID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListCartItemsRow
+	for rows.Next() {
+		var i ListCartItemsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CartID,
+			&i.Position,
+			&i.LinkID,
+			&i.Title,
+			&i.Description,
+			&i.ImageUrl,
+			&i.PriceText,
+			&i.Retailer,
+			&i.CreatedAt,
+			&i.LinkSlug,
+			&i.OriginalUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listCartsByUser = `-- name: ListCartsByUser :many
+SELECT id, user_id, slug, title, description, cover_image_url, is_public, archived_at, created_at, updated_at FROM carts
+WHERE user_id = $1 AND archived_at IS NULL
+ORDER BY updated_at DESC
+`
+
+func (q *Queries) ListCartsByUser(ctx context.Context, userID int64) ([]Cart, error) {
+	rows, err := q.db.Query(ctx, listCartsByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Cart
+	for rows.Next() {
+		var i Cart
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Slug,
+			&i.Title,
+			&i.Description,
+			&i.CoverImageUrl,
+			&i.IsPublic,
+			&i.ArchivedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const nextCartItemPosition = `-- name: NextCartItemPosition :one
+SELECT COALESCE(MAX(position), -1) + 1 AS next_position FROM cart_items WHERE cart_id = $1
+`
+
+func (q *Queries) NextCartItemPosition(ctx context.Context, cartID int64) (int32, error) {
+	row := q.db.QueryRow(ctx, nextCartItemPosition, cartID)
+	var next_position int32
+	err := row.Scan(&next_position)
+	return next_position, err
+}
+
+const removeCartItem = `-- name: RemoveCartItem :exec
+DELETE FROM cart_items WHERE id = $1 AND cart_id = $2
+`
+
+type RemoveCartItemParams struct {
+	ID     int64 `json:"id"`
+	CartID int64 `json:"cart_id"`
+}
+
+func (q *Queries) RemoveCartItem(ctx context.Context, arg RemoveCartItemParams) error {
+	_, err := q.db.Exec(ctx, removeCartItem, arg.ID, arg.CartID)
+	return err
+}
+
+const reorderCartItem = `-- name: ReorderCartItem :exec
+UPDATE cart_items SET position = $3 WHERE id = $1 AND cart_id = $2
+`
+
+type ReorderCartItemParams struct {
+	ID       int64 `json:"id"`
+	CartID   int64 `json:"cart_id"`
+	Position int32 `json:"position"`
+}
+
+func (q *Queries) ReorderCartItem(ctx context.Context, arg ReorderCartItemParams) error {
+	_, err := q.db.Exec(ctx, reorderCartItem, arg.ID, arg.CartID, arg.Position)
+	return err
+}
+
+const updateCart = `-- name: UpdateCart :one
+UPDATE carts SET
+  title           = COALESCE($2, title),
+  description     = COALESCE($3, description),
+  cover_image_url = COALESCE($4, cover_image_url),
+  is_public       = COALESCE($5, is_public),
+  updated_at      = now()
+WHERE id = $1
+RETURNING id, user_id, slug, title, description, cover_image_url, is_public, archived_at, created_at, updated_at
+`
+
+type UpdateCartParams struct {
+	ID            int64       `json:"id"`
+	Title         string      `json:"title"`
+	Description   pgtype.Text `json:"description"`
+	CoverImageUrl pgtype.Text `json:"cover_image_url"`
+	IsPublic      bool        `json:"is_public"`
+}
+
+func (q *Queries) UpdateCart(ctx context.Context, arg UpdateCartParams) (Cart, error) {
+	row := q.db.QueryRow(ctx, updateCart,
+		arg.ID,
+		arg.Title,
+		arg.Description,
+		arg.CoverImageUrl,
+		arg.IsPublic,
+	)
+	var i Cart
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Slug,
+		&i.Title,
+		&i.Description,
+		&i.CoverImageUrl,
+		&i.IsPublic,
+		&i.ArchivedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const upsertGoogleUser = `-- name: UpsertGoogleUser :one
+INSERT INTO users (google_sub, email, display_name, avatar_url, handle)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (google_sub) DO UPDATE
+  SET email        = EXCLUDED.email,
+      display_name = EXCLUDED.display_name,
+      avatar_url   = EXCLUDED.avatar_url
+RETURNING id, email, phone, google_sub, display_name, avatar_url, handle, created_at, banned_at
+`
+
+type UpsertGoogleUserParams struct {
+	GoogleSub   pgtype.Text `json:"google_sub"`
+	Email       pgtype.Text `json:"email"`
+	DisplayName string      `json:"display_name"`
+	AvatarUrl   pgtype.Text `json:"avatar_url"`
+	Handle      pgtype.Text `json:"handle"`
+}
+
+func (q *Queries) UpsertGoogleUser(ctx context.Context, arg UpsertGoogleUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, upsertGoogleUser,
+		arg.GoogleSub,
+		arg.Email,
+		arg.DisplayName,
+		arg.AvatarUrl,
+		arg.Handle,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Phone,
+		&i.GoogleSub,
+		&i.DisplayName,
+		&i.AvatarUrl,
+		&i.Handle,
+		&i.CreatedAt,
+		&i.BannedAt,
+	)
+	return i, err
 }
