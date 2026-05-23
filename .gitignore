@@ -1,7 +1,7 @@
 # binaries
 /bin/
-shoplit-api
-shoplit-redirect
+/shoplit-api
+/shoplit-redirect
 
 # env files
 .env
