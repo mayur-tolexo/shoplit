@@ -17,4 +17,15 @@
 coverage.out
 coverage.html
 
+# detached-mode dev state (pid + log files for `make up`)
+/.pids/
+/.logs/
+
 # generated (committed elsewhere; rules below cover regenerable artifacts)
+
+# frontend (web/) build artifacts
+/web/.next/
+/web/out/
+/web/node_modules/
+/web/.pnpm-store/
+/web/pnpm-debug.log

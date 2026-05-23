@@ -1,0 +1,18 @@
+/* web/styles/tokens.css
+ * Design tokens per the shoplit UX spec
+ * (docs/superpowers/specs/2026-05-23-shoplit-ux-design.md).
+ * Override --accent inline on /c/{slug} pages per creator.
+ */
+:root {
+  --ink: #1A1A18;
+  --cream: #FAF8F4;
+  --paper: #F2EFE9;
+  --rule: #E5E1D8;
+  --muted: #8C8779;
+  --accent: #B5532A;        /* default — overridden per cart */
+
+  --radius-sm: 0.375rem;
+  --radius: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}

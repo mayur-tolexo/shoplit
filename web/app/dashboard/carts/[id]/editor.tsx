@@ -1,0 +1,228 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowUp, ArrowDown, ExternalLink, GripVertical, Plus, Share2, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { ColorPicker } from "@/components/color-picker";
+import { PhoneFrame } from "@/components/phone-frame";
+import { ProductCard } from "@/components/product-card";
+import { PasteUrlPreview } from "@/components/paste-url-preview";
+import { ShareSheet } from "@/components/share-sheet";
+import {
+  addProductToCart,
+  removeProductFromCart,
+  reorderProducts,
+  updateCart,
+} from "@/lib/api-client";
+import type { Cart, Product } from "@/lib/types";
+
+export function CartEditor({ initialCart }: { initialCart: Cart }) {
+  const [cart, setCart] = useState<Cart>(initialCart);
+  const [, startTransition] = useTransition();
+  const [addOpen, setAddOpen] = useState(false);
+
+  const patch = async (changes: Partial<Cart>) => {
+    setCart((c) => ({ ...c, ...changes }));
+    startTransition(async () => {
+      const updated = await updateCart(cart.id, changes);
+      setCart(updated);
+    });
+  };
+
+  const addProduct = async (draft: Omit<Product, "id">) => {
+    const updated = await addProductToCart(cart.id, draft);
+    setCart(updated);
+    setAddOpen(false);
+    toast.success("Product added");
+  };
+
+  const removeProduct = async (productId: string) => {
+    const updated = await removeProductFromCart(cart.id, productId);
+    setCart(updated);
+  };
+
+  const move = async (productId: string, direction: -1 | 1) => {
+    const ids = cart.products.map((p) => p.id);
+    const idx = ids.indexOf(productId);
+    const target = idx + direction;
+    if (target < 0 || target >= ids.length) return;
+    [ids[idx], ids[target]] = [ids[target], ids[idx]];
+    const updated = await reorderProducts(cart.id, ids);
+    setCart(updated);
+  };
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
+      {/* HEADER */}
+      <div className="flex items-center justify-between mb-6 gap-4">
+        <div className="min-w-0">
+          <Link href="/dashboard" className="text-sm text-muted hover:text-ink">← Back to carts</Link>
+        </div>
+        <ShareSheet slug={cart.slug}>
+          <Button variant="default"><Share2 size={16} /> Share</Button>
+        </ShareSheet>
+      </div>
+
+      <div className="grid lg:grid-cols-[1.4fr_1fr] gap-10">
+        {/* LEFT — EDITOR */}
+        <div className="space-y-8">
+          {/* Cover image */}
+          <section>
+            <h2 className="font-serif text-2xl mb-3">Cover image</h2>
+            <div className="relative aspect-[16/10] rounded-xl overflow-hidden border border-rule bg-paper">
+              <Image src={cart.coverImageUrl} alt="" fill className="object-cover" unoptimized />
+            </div>
+            <div className="mt-2 flex gap-2">
+              <input
+                type="url"
+                value={cart.coverImageUrl}
+                onChange={(e) => patch({ coverImageUrl: e.target.value })}
+                placeholder="https://… image URL"
+                className="flex-1 rounded-md border border-rule bg-cream px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+            </div>
+          </section>
+
+          {/* Title + Bio */}
+          <section className="space-y-3">
+            <label className="block">
+              <span className="block text-sm font-medium mb-2">Title</span>
+              <input
+                type="text"
+                value={cart.title}
+                onChange={(e) => patch({ title: e.target.value })}
+                className="w-full rounded-md border border-rule bg-cream px-3 py-3 font-serif text-2xl focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+            </label>
+            <label className="block">
+              <span className="block text-sm font-medium mb-2">Bio</span>
+              <textarea
+                value={cart.bio ?? ""}
+                onChange={(e) => patch({ bio: e.target.value })}
+                rows={3}
+                placeholder="Tell your followers about this cart"
+                className="w-full rounded-md border border-rule bg-cream px-3 py-2 leading-relaxed focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+            </label>
+          </section>
+
+          {/* Accent color */}
+          <section>
+            <h2 className="font-serif text-2xl mb-3">Accent color</h2>
+            <ColorPicker value={cart.accentHex} onChange={(hex) => patch({ accentHex: hex })} />
+          </section>
+
+          {/* Products */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-serif text-2xl">Products ({cart.products.length})</h2>
+              <Dialog open={addOpen} onOpenChange={setAddOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="default"><Plus size={16} /> Add product</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle className="font-serif text-2xl">Add a product</DialogTitle>
+                  </DialogHeader>
+                  <PasteUrlPreview onResolved={addProduct} />
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {cart.products.length === 0 && (
+              <p className="text-sm text-muted">No products yet. Click &ldquo;Add product&rdquo; to paste your first link.</p>
+            )}
+
+            <ul className="space-y-2">
+              {cart.products.map((p, i) => (
+                <li key={p.id} className="flex items-center gap-3 p-3 rounded-lg border border-rule bg-cream">
+                  <GripVertical size={16} className="text-muted shrink-0" aria-hidden />
+                  <div className="relative w-12 h-12 rounded-md overflow-hidden bg-paper shrink-0">
+                    <Image src={p.imageUrl} alt="" fill sizes="48px" className="object-cover" unoptimized />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{p.title}</p>
+                    <p className="text-xs text-muted">{p.priceText}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => move(p.id, -1)}
+                      disabled={i === 0}
+                      aria-label="Move up"
+                      className="p-1 rounded hover:bg-paper disabled:opacity-30"
+                    >
+                      <ArrowUp size={14} />
+                    </button>
+                    <button
+                      onClick={() => move(p.id, +1)}
+                      disabled={i === cart.products.length - 1}
+                      aria-label="Move down"
+                      className="p-1 rounded hover:bg-paper disabled:opacity-30"
+                    >
+                      <ArrowDown size={14} />
+                    </button>
+                    <button
+                      onClick={() => removeProduct(p.id)}
+                      aria-label="Remove product"
+                      className="p-1 rounded hover:bg-paper text-muted hover:text-ink"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <div className="text-sm">
+            <Link
+              href={`/c/${cart.slug}`}
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center gap-1 text-ink underline-offset-4 hover:underline"
+            >
+              View live <ExternalLink size={14} />
+            </Link>
+          </div>
+        </div>
+
+        {/* RIGHT — PREVIEW */}
+        <div className="hidden lg:block sticky top-24 self-start">
+          <p className="text-sm text-muted text-center mb-3">Live preview</p>
+          <PhoneFrame>
+            <PreviewCartPage cart={cart} />
+          </PhoneFrame>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewCartPage({ cart }: { cart: Cart }) {
+  return (
+    <div style={{ ["--accent" as string]: cart.accentHex } as React.CSSProperties}>
+      <div className="relative aspect-[5/4]">
+        <Image src={cart.coverImageUrl} alt="" fill className="object-cover" unoptimized />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/20 to-transparent" />
+        <div className="absolute bottom-3 left-3 right-3 text-cream">
+          <p className="text-xs opacity-90">@{cart.ownerHandle}</p>
+          <p className="font-serif text-xl leading-tight">{cart.title}</p>
+        </div>
+      </div>
+      <div className="p-3 space-y-3">
+        {cart.products.length === 0 ? (
+          <p className="text-xs text-muted text-center py-6">No products yet.</p>
+        ) : (
+          cart.products.slice(0, 3).map((p) => <ProductCard key={p.id} product={p} />)
+        )}
+        {cart.products.length > 3 && (
+          <p className="text-center text-xs text-muted">+ {cart.products.length - 3} more on the live page</p>
+        )}
+      </div>
+    </div>
+  );
+}
