@@ -155,3 +155,10 @@ func (s *SessionManager) verify(cookieValue string) (string, error) {
 func userIDContext(ctx context.Context, userID int64) context.Context {
 	return context.WithValue(ctx, userIDKey, userID)
 }
+
+// WithUserID is exported for tests that need to inject a user_id directly
+// (bypassing the cookie + middleware flow). Production code should use
+// RequireUser middleware.
+func WithUserID(ctx context.Context, userID int64) context.Context {
+	return userIDContext(ctx, userID)
+}
