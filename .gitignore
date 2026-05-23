@@ -17,4 +17,8 @@
 coverage.out
 coverage.html
 
+# detached-mode dev state (pid + log files for `make up`)
+/.pids/
+/.logs/
+
 # generated (committed elsewhere; rules below cover regenerable artifacts)
