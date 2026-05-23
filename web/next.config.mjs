@@ -10,5 +10,15 @@ const nextConfig = {
       { protocol: "https", hostname: "rukminim2.flixcart.com" },
     ],
   },
+  async rewrites() {
+    // Same-origin proxy to the Go API and redirect service so the frontend
+    // uses simple relative paths and the browser sends cookies automatically
+    // (no CORS).
+    return [
+      { source: "/api/:path*", destination: "http://localhost:8080/api/:path*" },
+      { source: "/go/:path*", destination: "http://localhost:8081/go/:path*" },
+      { source: "/p/:path*", destination: "http://localhost:8081/p/:path*" },
+    ];
+  },
 };
 export default nextConfig;
