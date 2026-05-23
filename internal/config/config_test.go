@@ -25,13 +25,32 @@ func TestLoad_AppliesDefaults(t *testing.T) {
 	assert.Equal(t, "redis://localhost:6379/0", cfg.RedisURL)
 }
 
-func TestLoad_RequiresMandatory(t *testing.T) {
-	// Force required env vars to be unset so the test is deterministic
-	// regardless of any externally inherited env vars.
-	os.Unsetenv("SHOPLIT_DB_DSN")
-	os.Unsetenv("SHOPLIT_DB_DSN_READONLY")
-	os.Unsetenv("SHOPLIT_REDIS_URL")
+// mustUnset clears the given env vars for the duration of the test and restores
+// their original values (or removes them) when the test ends.
+func mustUnset(t *testing.T, keys ...string) {
+	t.Helper()
+	for _, k := range keys {
+		original, hadIt := os.LookupEnv(k)
+		os.Unsetenv(k)
+		if hadIt {
+			t.Cleanup(func() { os.Setenv(k, original) })
+		} else {
+			t.Cleanup(func() { os.Unsetenv(k) })
+		}
+	}
+}
 
-	_, err := Load()
-	require.Error(t, err)
+func TestLoad_RequiresMandatory(t *testing.T) {
+	t.Run("missing DBDSN", func(t *testing.T) {
+		mustUnset(t, "SHOPLIT_DB_DSN")
+		t.Setenv("SHOPLIT_REDIS_URL", "redis://x")
+		_, err := Load()
+		require.Error(t, err)
+	})
+	t.Run("missing RedisURL", func(t *testing.T) {
+		t.Setenv("SHOPLIT_DB_DSN", "postgres://x")
+		mustUnset(t, "SHOPLIT_REDIS_URL")
+		_, err := Load()
+		require.Error(t, err)
+	})
 }

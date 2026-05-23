@@ -3,7 +3,7 @@
 GO ?= go
 
 # Pinned tool versions. Installed via `make install-tools` once per dev machine.
-MIGRATE_VERSION   = v4.17.1
+MIGRATE_VERSION   = v4.19.1
 SQLC_VERSION      = v1.31.1
 GOLANGCI_VERSION  = v1.64.8
 

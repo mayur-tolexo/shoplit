@@ -11,7 +11,7 @@ type Config struct {
 	LogLevel string `env:"SHOPLIT_LOG_LEVEL" envDefault:"info"`
 
 	DBDSN         string `env:"SHOPLIT_DB_DSN,required"`
-	DBDSNReadOnly string `env:"SHOPLIT_DB_DSN_READONLY,required"`
+	DBDSNReadOnly string `env:"SHOPLIT_DB_DSN_READONLY"`
 	RedisURL      string `env:"SHOPLIT_REDIS_URL,required"`
 
 	APIAddr      string `env:"SHOPLIT_API_ADDR" envDefault:":8080"`

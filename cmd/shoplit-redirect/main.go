@@ -32,6 +32,9 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	if cfg.DBDSNReadOnly == "" {
+		return errors.New("SHOPLIT_DB_DSN_READONLY is required for shoplit-redirect")
+	}
 
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: parseLevel(cfg.LogLevel),
