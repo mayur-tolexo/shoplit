@@ -1,0 +1,20 @@
+# binaries
+/bin/
+/shoplit-api
+/shoplit-redirect
+
+# env files
+.env
+.env.local
+
+# editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# coverage
+coverage.out
+coverage.html
+
+# generated (committed elsewhere; rules below cover regenerable artifacts)
