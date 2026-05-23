@@ -22,29 +22,38 @@ make install-tools
 
 This installs pinned versions of `migrate`, `sqlc`, and `golangci-lint` into `$GOBIN`. Re-run only when versions in the Makefile change.
 
-### Bring up local Postgres + Redis
-
-```bash
-docker run --rm -d --name shoplit-pg \
-  -e POSTGRES_USER=shoplit -e POSTGRES_PASSWORD=shoplit -e POSTGRES_DB=shoplit \
-  -p 5432:5432 postgres:16-alpine
-
-docker run --rm -d --name shoplit-redis -p 6379:6379 redis:7-alpine
-```
-
-### Apply migrations
+### Configure environment
 
 ```bash
 cp .env.example .env
-export $(grep -v '^#' .env | xargs)
-make migrate-up
 ```
 
-### Run
+The Makefile auto-loads `.env`, so subsequent `make` commands pick up the config without a manual `export`.
+
+### Run the whole stack (one command, detached)
 
 ```bash
-make run-api       # listens on :8080
-make run-redirect  # in another shell, listens on :8081
+make up         # builds binaries, brings up postgres+redis, applies migrations,
+                # then starts shoplit-api (:8080) and shoplit-redirect (:8081)
+                # in the background. Returns to your prompt immediately.
+
+make logs       # tail both go service logs (Ctrl-C stops the tail, not services)
+make ps         # show what's running (compose + go services)
+make down       # stop everything (go services + docker compose)
+make down-clean # stop everything AND wipe the local database
+```
+
+PIDs are tracked in `.pids/`, logs in `.logs/` (both gitignored). Re-running `make up` stops the old binaries and starts fresh ones with the latest build. Containers: `shoplit-pg` on `:5433`, `shoplit-redis` on `:6379`. Data persists across `make down` / `make up` cycles; only `make down-clean` discards it.
+
+### Lower-level targets (if you want finer control)
+
+```bash
+make up-infra      # only start postgres + redis, no migrations, no go services
+make migrate-up    # apply pending migrations
+make run-api       # run just shoplit-api on the host (foreground, blocks)
+make run-redirect  # run just shoplit-redirect on the host (foreground, blocks)
+make logs          # tail compose logs
+make ps            # show compose service status
 ```
 
 Sanity check:
