@@ -31,3 +31,14 @@
     }
   }
 }
+
+@layer utilities {
+  /* Gentle floating motion for the soft gradient blobs in the landing hero.
+     Combined with `filter: blur(...)` this looks like ambient warm light
+     drifting behind the content. Disabled by prefers-reduced-motion above. */
+  @keyframes shoplit-blob {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    33%      { transform: translate3d(4%, -3%, 0) scale(1.05); }
+    66%      { transform: translate3d(-3%, 5%, 0) scale(0.97); }
+  }
+}
