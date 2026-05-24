@@ -203,3 +203,21 @@ export interface FeedbackItem { id: string; message: string; email: string; name
 export async function listFeedback(opts?: { cookie?: string }): Promise<FeedbackItem[]> {
   return jsonFetch<FeedbackItem[]>("/api/v1/feedback", opts);
 }
+
+// Add a product from shared/pasted fields. Sends no `retailer` field so the
+// server detects it from original_url. Never triggers a server-side OG fetch.
+export async function addSharedItem(
+  cartId: string,
+  fields: { title: string; priceText?: string; imageUrl?: string; originalUrl: string; note?: string },
+): Promise<void> {
+  await jsonFetch(`/api/v1/carts/${cartId}/items`, {
+    method: "POST",
+    body: JSON.stringify({
+      title: fields.title,
+      price_text: fields.priceText ?? "",
+      image_url: fields.imageUrl ?? "",
+      original_url: fields.originalUrl,
+      note: fields.note ?? "",
+    }),
+  });
+}
