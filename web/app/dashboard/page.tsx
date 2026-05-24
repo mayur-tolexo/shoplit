@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Eye, MousePointerClick, Plus, ShoppingBag, Sparkles } from "lucide-react";
 import { getCurrentUser, listMyCarts } from "@/lib/api-client";
 import { CartCard } from "@/components/cart-card";
+import { AnimatedNumber } from "@/components/animated-number";
 
 export const dynamic = "force-dynamic";
 
@@ -40,17 +41,17 @@ export default async function DashboardPage() {
             <StatCard
               icon={<ShoppingBag size={16} className="text-muted" />}
               label="Active carts"
-              value={carts.length.toLocaleString()}
+              value={carts.length}
             />
             <StatCard
               icon={<Eye size={16} className="text-muted" />}
               label="Views (7d)"
-              value={totals.views.toLocaleString()}
+              value={totals.views}
             />
             <StatCard
               icon={<MousePointerClick size={16} className="text-muted" />}
               label="Clicks (7d)"
-              value={totals.clicks.toLocaleString()}
+              value={totals.clicks}
             />
           </div>
 
@@ -84,7 +85,7 @@ function StatCard({
 }: {
   icon: React.ReactNode;
   label: string;
-  value: string;
+  value: number;
 }) {
   return (
     <div className="rounded-xl border border-rule bg-cream px-4 py-4 sm:px-6 sm:py-5">
@@ -92,7 +93,9 @@ function StatCard({
         {icon}
         <p className="text-xs sm:text-sm text-muted">{label}</p>
       </div>
-      <p className="font-serif text-2xl sm:text-3xl tabular-nums">{value}</p>
+      <p className="font-serif text-2xl sm:text-3xl tabular-nums">
+        <AnimatedNumber value={value} />
+      </p>
     </div>
   );
 }
