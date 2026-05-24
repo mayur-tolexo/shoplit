@@ -27,8 +27,19 @@ www.{$SITE_DOMAIN} {
 		reverse_proxy shoplit-redirect:8081
 	}
 
-	# Everything else → the Next.js frontend.
-	handle {
+	# Next.js build assets are content-hashed and immutable — keep them
+	# cacheable (Next sets long cache headers; we don't override).
+	handle /_next/* {
 		reverse_proxy shoplit-web:3000
+	}
+
+	# App pages (documents + RSC flight payloads). Force no-store so the
+	# browser can't cache a `text/x-component` RSC payload and then serve it
+	# for a real navigation (which downloads the file instead of rendering —
+	# the "download then reload fixes it" bug after the OAuth redirect).
+	handle {
+		reverse_proxy shoplit-web:3000 {
+			header_down Cache-Control "no-store"
+		}
 	}
 }
