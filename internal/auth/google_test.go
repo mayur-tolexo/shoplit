@@ -18,6 +18,12 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// newTestSM returns a SessionManager using the shared test secret.
+func newTestSM(t *testing.T) *auth.SessionManager {
+	t.Helper()
+	return auth.NewSessionManager("test-secret")
+}
+
 // fakeGoogleServer simulates Google's token + userinfo endpoints.
 func fakeGoogleServer(t *testing.T) *httptest.Server {
 	t.Helper()
@@ -47,7 +53,7 @@ func TestGoogleCallback_HappyPath(t *testing.T) {
 	fake := fakeGoogleServer(t)
 	defer fake.Close()
 
-	sm := auth.NewSessionManager("test-secret")
+	sm := newTestSM(t)
 	cfg := &oauth2.Config{
 		ClientID:     "test-client",
 		ClientSecret: "test-secret",
@@ -108,4 +114,77 @@ func TestHandleLogout(t *testing.T) {
 	req := httptest.NewRequest("POST", "/api/v1/auth/logout", nil)
 	auth.HandleLogout(sm).ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusNoContent, rr.Code)
+}
+
+func TestGoogleCallback_RedirectsToNext(t *testing.T) {
+	sm := newTestSM(t)
+	upsert := func(auth.GoogleUserInfo) (int64, error) { return 7, nil }
+	srv := fakeGoogleServer(t)
+	defer srv.Close()
+	userinfoURL := srv.URL + "/userinfo"
+	cfg := &oauth2.Config{Endpoint: oauth2.Endpoint{TokenURL: srv.URL + "/token"}}
+
+	handler := auth.HandleGoogleCallback(cfg, sm, upsert, "http://localhost:3000", userinfoURL)
+
+	rrPre := httptest.NewRecorder()
+	sm.SetTemp(rrPre, "oauth_state", "fixed-state-value")
+	sm.SetTemp(rrPre, "oauth_next", "/add?title=x&url=https%3A%2F%2Famzn.in%2Fd%2Fabc")
+	req := httptest.NewRequest("GET", "/cb?state=fixed-state-value&code=fake-code", nil)
+	for _, c := range rrPre.Result().Cookies() {
+		req.AddCookie(c)
+	}
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusFound {
+		t.Fatalf("want 302, got %d", rr.Code)
+	}
+	if got := rr.Header().Get("Location"); got != "http://localhost:3000/add?title=x&url=https%3A%2F%2Famzn.in%2Fd%2Fabc" {
+		t.Fatalf("redirect = %q", got)
+	}
+}
+
+func TestGoogleCallback_RejectsUnsafeNext(t *testing.T) {
+	sm := newTestSM(t)
+	upsert := func(auth.GoogleUserInfo) (int64, error) { return 7, nil }
+	srv := fakeGoogleServer(t)
+	defer srv.Close()
+	cfg := &oauth2.Config{Endpoint: oauth2.Endpoint{TokenURL: srv.URL + "/token"}}
+	handler := auth.HandleGoogleCallback(cfg, sm, upsert, "http://localhost:3000", srv.URL+"/userinfo")
+
+	rrPre := httptest.NewRecorder()
+	sm.SetTemp(rrPre, "oauth_state", "fixed-state-value")
+	sm.SetTemp(rrPre, "oauth_next", "//evil.example.com/phish")
+	req := httptest.NewRequest("GET", "/cb?state=fixed-state-value&code=fake-code", nil)
+	for _, c := range rrPre.Result().Cookies() {
+		req.AddCookie(c)
+	}
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if got := rr.Header().Get("Location"); got != "http://localhost:3000/dashboard" {
+		t.Fatalf("unsafe next should fall back to /dashboard, got %q", got)
+	}
+}
+
+func TestGoogleStart_StoresNext(t *testing.T) {
+	sm := newTestSM(t)
+	cfg := auth.GoogleConfig("id", "secret", "http://localhost:8080/cb")
+	handler := auth.HandleGoogleStart(cfg, sm)
+	req := httptest.NewRequest("GET", "/api/v1/auth/google?next=%2Fadd%3Ftitle%3Dx", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusFound {
+		t.Fatalf("want 302, got %d", rr.Code)
+	}
+	var found bool
+	for _, c := range rr.Result().Cookies() {
+		if c.Name == sm.TempCookieName("oauth_next") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected an oauth_next temp cookie to be set")
+	}
 }

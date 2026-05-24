@@ -18,10 +18,10 @@ const desktopSteps = [
 ];
 
 const mobileSteps = [
-  { t: "Open the product in your shopping app", b: "On Nykaa, Myntra, Amazon, Flipkart or AJIO, open the product page." },
-  { t: "Tap Share → Copy", b: "Use the app's Share button and copy the link (or the whole “Check out this product…” text)." },
-  { t: "Paste into shoplit", b: "On shoplit.in open your cart, and in “Add a product” paste it. shoplit pulls the title automatically." },
-  { t: "Add", b: "Tweak the price/image if needed, pick the cart, and add. Done — no extension required." },
+  { t: "Install shoplit", b: "Open shoplit.in in Chrome on your phone → menu (⋮) → “Add to Home screen”. (On iPhone: Safari → Share → Add to Home Screen.)" },
+  { t: "Open a product & tap Share", b: "On Nykaa, Myntra, Amazon, Flipkart or AJIO, open the product and tap the app’s Share button." },
+  { t: "Choose shoplit (Android)", b: "Pick shoplit from the share sheet — it opens with the link and title already filled in. iPhone: copy the link, open shoplit and paste it on the Add screen." },
+  { t: "Pick a cart & add", b: "Choose the cart, tweak the price/image if you like, and add. Done — no typing it all out." },
 ];
 
 export default function GetExtensionPage() {
@@ -84,8 +84,8 @@ export default function GetExtensionPage() {
           </div>
           <p className="text-sm text-muted leading-relaxed mb-5">
             Heads up: <strong className="text-ink">Chrome on phones doesn&apos;t support extensions</strong> — that&apos;s
-            an Android/iOS limitation, not a shoplit one. But you don&apos;t need it: add products by
-            sharing the link into shoplit.
+            an Android/iOS limitation, not a shoplit one. Install shoplit as a home-screen app and
+            use the native share sheet instead — it&apos;s just as fast.
           </p>
           <ol className="space-y-5">
             {mobileSteps.map((s, i) => (
@@ -98,6 +98,12 @@ export default function GetExtensionPage() {
               </li>
             ))}
           </ol>
+          <Link
+            href="/add"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-ink text-cream px-6 py-3 font-medium hover:opacity-90"
+          >
+            Add a product by link →
+          </Link>
           <p className="text-xs text-muted mt-6 leading-relaxed">
             Power users on Android: <strong className="text-ink">Kiwi Browser</strong> does support Chrome
             extensions — you can load the same downloaded folder there via its Extensions menu.

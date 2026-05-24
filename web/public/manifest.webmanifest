@@ -1,0 +1,20 @@
+{
+  "name": "shoplit",
+  "short_name": "shoplit",
+  "description": "Build a shoppable cart and share it with one link.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FAF8F4",
+  "theme_color": "#B5532A",
+  "icons": [
+    { "src": "/icons/192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "share_target": {
+    "action": "/add",
+    "method": "GET",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  }
+}

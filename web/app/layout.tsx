@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter, Noto_Sans_Devanagari, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import { SwRegister } from "@/components/sw-register";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -31,12 +32,14 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "shoplit",
   description: "Build a curated cart of products from Amazon, Myntra, Nykaa and more, then share it with a short URL.",
+  manifest: "/manifest.webmanifest",
 };
 
 // Correct mobile scaling. user-scalable stays enabled for accessibility.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  themeColor: "#B5532A",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -45,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <Toaster position="bottom-center" richColors />
+        <SwRegister />
       </body>
     </html>
   );
