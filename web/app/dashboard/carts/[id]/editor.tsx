@@ -336,14 +336,16 @@ function PreviewCartPage({ cart }: { cart: Cart }) {
           <p className="font-serif text-xl leading-tight">{cart.title}</p>
         </div>
       </div>
-      <div className="p-3 space-y-3">
+      <div className="p-3">
         {cart.products.length === 0 ? (
           <p className="text-xs text-muted text-center py-6">No products yet.</p>
         ) : (
-          cart.products.slice(0, 3).map((p) => <ProductCard key={p.id} product={p} />)
+          <div className="grid grid-cols-2 gap-2">
+            {cart.products.slice(0, 4).map((p) => <ProductCard key={p.id} product={p} />)}
+          </div>
         )}
-        {cart.products.length > 3 && (
-          <p className="text-center text-xs text-muted">+ {cart.products.length - 3} more on the live page</p>
+        {cart.products.length > 4 && (
+          <p className="text-center text-xs text-muted mt-3">+ {cart.products.length - 4} more on the live page</p>
         )}
       </div>
     </div>

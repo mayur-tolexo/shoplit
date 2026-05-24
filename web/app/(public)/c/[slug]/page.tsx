@@ -56,10 +56,10 @@ export default async function PublicCartPage({ params }: { params: { slug: strin
         {cart.products.length === 0 ? (
           <p className="text-center text-muted py-16">This cart is still being curated. Check back soon.</p>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
             {cart.products.map((p, i) => (
               <RevealOnScroll key={p.id} index={i}>
-                <ProductCard product={p} eagerImage={i < 2} />
+                <ProductCard product={p} eagerImage={i < 4} />
               </RevealOnScroll>
             ))}
           </div>
