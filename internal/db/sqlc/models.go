@@ -57,6 +57,15 @@ type ClickEvent struct {
 	RefererHost   pgtype.Text        `json:"referer_host"`
 }
 
+type ExtensionToken struct {
+	ID         int64              `json:"id"`
+	UserID     int64              `json:"user_id"`
+	TokenHash  string             `json:"token_hash"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	LastUsedAt pgtype.Timestamptz `json:"last_used_at"`
+	RevokedAt  pgtype.Timestamptz `json:"revoked_at"`
+}
+
 type Link struct {
 	ID          int64              `json:"id"`
 	Slug        string             `json:"slug"`

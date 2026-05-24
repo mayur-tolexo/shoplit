@@ -130,6 +130,22 @@ func (q *Queries) CreateCart(ctx context.Context, arg CreateCartParams) (Cart, e
 	return i, err
 }
 
+const createExtensionToken = `-- name: CreateExtensionToken :exec
+
+INSERT INTO extension_tokens (user_id, token_hash) VALUES ($1, $2)
+`
+
+type CreateExtensionTokenParams struct {
+	UserID    int64  `json:"user_id"`
+	TokenHash string `json:"token_hash"`
+}
+
+// ─── EXTENSION TOKENS ────────────────────────────────────────────────────────
+func (q *Queries) CreateExtensionToken(ctx context.Context, arg CreateExtensionTokenParams) error {
+	_, err := q.db.Exec(ctx, createExtensionToken, arg.UserID, arg.TokenHash)
+	return err
+}
+
 const createLink = `-- name: CreateLink :one
 
 INSERT INTO links (slug, user_id, original_url, retailer, link_type, cart_id)
@@ -212,6 +228,23 @@ func (q *Queries) GetCartBySlug(ctx context.Context, slug string) (Cart, error) 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
+	return i, err
+}
+
+const getExtensionTokenByHash = `-- name: GetExtensionTokenByHash :one
+SELECT id, user_id, revoked_at FROM extension_tokens WHERE token_hash = $1
+`
+
+type GetExtensionTokenByHashRow struct {
+	ID        int64              `json:"id"`
+	UserID    int64              `json:"user_id"`
+	RevokedAt pgtype.Timestamptz `json:"revoked_at"`
+}
+
+func (q *Queries) GetExtensionTokenByHash(ctx context.Context, tokenHash string) (GetExtensionTokenByHashRow, error) {
+	row := q.db.QueryRow(ctx, getExtensionTokenByHash, tokenHash)
+	var i GetExtensionTokenByHashRow
+	err := row.Scan(&i.ID, &i.UserID, &i.RevokedAt)
 	return i, err
 }
 
@@ -474,6 +507,15 @@ type ReorderCartItemParams struct {
 
 func (q *Queries) ReorderCartItem(ctx context.Context, arg ReorderCartItemParams) error {
 	_, err := q.db.Exec(ctx, reorderCartItem, arg.ID, arg.CartID, arg.Position)
+	return err
+}
+
+const touchExtensionToken = `-- name: TouchExtensionToken :exec
+UPDATE extension_tokens SET last_used_at = now() WHERE id = $1
+`
+
+func (q *Queries) TouchExtensionToken(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, touchExtensionToken, id)
 	return err
 }
 

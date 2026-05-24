@@ -119,3 +119,14 @@ ON CONFLICT (link_id, day) DO UPDATE SET clicks = click_daily.clicks + 1;
 INSERT INTO cart_views_daily (cart_id, day, views)
 VALUES ($1, current_date, 1)
 ON CONFLICT (cart_id, day) DO UPDATE SET views = cart_views_daily.views + 1;
+
+-- ─── EXTENSION TOKENS ────────────────────────────────────────────────────────
+
+-- name: CreateExtensionToken :exec
+INSERT INTO extension_tokens (user_id, token_hash) VALUES ($1, $2);
+
+-- name: GetExtensionTokenByHash :one
+SELECT id, user_id, revoked_at FROM extension_tokens WHERE token_hash = $1;
+
+-- name: TouchExtensionToken :exec
+UPDATE extension_tokens SET last_used_at = now() WHERE id = $1;
