@@ -4,6 +4,8 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "picsum.photos" },
       { protocol: "https", hostname: "api.dicebear.com" },
+      { protocol: "https", hostname: "lh3.googleusercontent.com" }, // Google avatars
+      { protocol: "https", hostname: "*.googleusercontent.com" },
       { protocol: "https", hostname: "m.media-amazon.com" },
       { protocol: "https", hostname: "assets.myntassets.com" },
       { protocol: "https", hostname: "images-static.nykaa.com" },
@@ -11,11 +13,11 @@ const nextConfig = {
     ],
   },
   async rewrites() {
-    // Same-origin proxy to the Go API and redirect service so the frontend
-    // uses simple relative paths and the browser sends cookies automatically
-    // (no CORS).
+    // The app talks to the backend directly via NEXT_PUBLIC_API_BASE_URL
+    // (CORS-enabled), so /api no longer needs a proxy. We keep /go and /p
+    // rewrites so public cart-page product links resolve to the redirect
+    // service through the same origin.
     return [
-      { source: "/api/:path*", destination: "http://localhost:8080/api/:path*" },
       { source: "/go/:path*", destination: "http://localhost:8081/go/:path*" },
       { source: "/p/:path*", destination: "http://localhost:8081/p/:path*" },
     ];

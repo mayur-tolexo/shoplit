@@ -129,7 +129,11 @@ func (s *SessionManager) sign(value string) string {
 	h := hmac.New(sha256.New, s.secret)
 	h.Write([]byte(value))
 	sig := hex.EncodeToString(h.Sum(nil))
-	return base64.URLEncoding.EncodeToString([]byte(value)) + "." + sig
+	// RawURLEncoding (no "=" padding) so the cookie value contains only
+	// [A-Za-z0-9_-]. Padded base64's "=" survives a direct request but gets
+	// URL-encoded to %3D when the value round-trips through Next.js
+	// cookies().toString() during SSR, breaking the decode on the backend.
+	return base64.RawURLEncoding.EncodeToString([]byte(value)) + "." + sig
 }
 
 func (s *SessionManager) verify(cookieValue string) (string, error) {
@@ -137,7 +141,7 @@ func (s *SessionManager) verify(cookieValue string) (string, error) {
 	if len(parts) != 2 {
 		return "", errors.New("session: bad cookie format")
 	}
-	valBytes, err := base64.URLEncoding.DecodeString(parts[0])
+	valBytes, err := base64.RawURLEncoding.DecodeString(parts[0])
 	if err != nil {
 		return "", fmt.Errorf("session: base64 decode: %w", err)
 	}
