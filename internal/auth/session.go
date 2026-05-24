@@ -30,6 +30,10 @@ type ctxKey struct{}
 
 var userIDKey = ctxKey{}
 
+// BearerResolver resolves a raw Bearer token to a user_id. Returns an error if
+// the token is unknown or revoked. Wired in by main via WithBearerResolver.
+type BearerResolver func(ctx context.Context, token string) (int64, error)
+
 // SessionManager signs cookies with HMAC-SHA256 using a server secret.
 type SessionManager struct {
 	secret []byte
