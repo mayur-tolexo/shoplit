@@ -48,9 +48,9 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <section className="rounded-xl border-2 border-rule bg-paper p-5 space-y-4">
       <label className="block">
-        <span className="block text-sm font-medium mb-2">Paste a product URL</span>
+        <span className="block text-sm font-medium mb-2">Paste a product URL to add it instantly</span>
         <div className="relative">
           <Link2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
           <input
@@ -58,7 +58,7 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
             value={url}
             onChange={(e) => handlePaste(e.target.value)}
             placeholder="https://www.myntra.com/example-kurta"
-            className="w-full rounded-lg border border-rule bg-cream py-3 pl-10 pr-4 text-base focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+            className="w-full rounded-lg border border-rule bg-cream py-4 pl-10 pr-4 text-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
           />
         </div>
       </label>
@@ -96,6 +96,6 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
       {error && (
         <p className="text-sm text-muted" role="status">{error}</p>
       )}
-    </div>
+    </section>
   );
 }

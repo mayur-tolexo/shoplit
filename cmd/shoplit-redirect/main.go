@@ -1,4 +1,3 @@
-// cmd/shoplit-redirect/main.go
 package main
 
 import (
@@ -16,7 +15,9 @@ import (
 
 	"github.com/mayur-tolexo/shoplit/internal/config"
 	"github.com/mayur-tolexo/shoplit/internal/db"
+	sqlcgen "github.com/mayur-tolexo/shoplit/internal/db/sqlc"
 	"github.com/mayur-tolexo/shoplit/internal/httpx"
+	"github.com/mayur-tolexo/shoplit/internal/redirect"
 	"github.com/mayur-tolexo/shoplit/internal/redis"
 )
 
@@ -35,7 +36,6 @@ func run() error {
 	if cfg.DBDSNReadOnly == "" {
 		return errors.New("SHOPLIT_DB_DSN_READONLY is required for shoplit-redirect")
 	}
-
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: parseLevel(cfg.LogLevel),
 	})))
@@ -43,7 +43,6 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	// shoplit-redirect uses the read-only DSN — it only ever SELECTs.
 	pool, err := db.Open(ctx, cfg.DBDSNReadOnly)
 	if err != nil {
 		return err
@@ -56,19 +55,15 @@ func run() error {
 	}
 	defer rc.Close()
 
+	q := sqlcgen.New(pool)
+	svc := redirect.NewService(q)
+
 	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
-	r.Use(middleware.Recoverer)
-
+	r.Use(middleware.RequestID, middleware.Recoverer)
 	r.Method(http.MethodGet, "/health", httpx.Health(pool, rc, cfg.Env))
+	redirect.RegisterRoutes(r, svc)
 
-	// /p/{slug} and /go/{slug} land here in a later plan.
-
-	srv := &http.Server{
-		Addr:              cfg.RedirectAddr,
-		Handler:           r,
-		ReadHeaderTimeout: 5 * time.Second,
-	}
+	srv := &http.Server{Addr: cfg.RedirectAddr, Handler: r, ReadHeaderTimeout: 5 * time.Second}
 
 	go func() {
 		slog.Info("shoplit-redirect listening", "addr", cfg.RedirectAddr, "env", cfg.Env)

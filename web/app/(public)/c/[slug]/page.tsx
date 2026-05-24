@@ -3,6 +3,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { getCartBySlug } from "@/lib/api-client";
 import { ProductCard } from "@/components/product-card";
+import { RevealOnScroll } from "@/components/reveal-on-scroll";
+import { StickyShareBar } from "@/components/sticky-share-bar";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const cart = await getCartBySlug(params.slug);
@@ -52,14 +56,16 @@ export default async function PublicCartPage({ params }: { params: { slug: strin
         ) : (
           <div className="grid gap-6 md:grid-cols-2">
             {cart.products.map((p, i) => (
-              <ProductCard key={p.id} product={p} eagerImage={i < 2} />
+              <RevealOnScroll key={p.id} index={i}>
+                <ProductCard product={p} eagerImage={i < 2} />
+              </RevealOnScroll>
             ))}
           </div>
         )}
       </section>
 
-      {/* FOOTER */}
-      <footer className="border-t border-rule mt-16">
+      {/* FOOTER (extra bottom padding so it isn't covered by the sticky share bar) */}
+      <footer className="border-t border-rule mt-16 pb-24">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 py-10 text-sm text-muted text-center space-y-3">
           <p>curated by <strong className="text-ink">@{cart.ownerHandle}</strong></p>
           <p className="text-xs">
@@ -74,6 +80,8 @@ export default async function PublicCartPage({ params }: { params: { slug: strin
           </p>
         </div>
       </footer>
+
+      <StickyShareBar slug={cart.slug} cartTitle={cart.title} ownerHandle={cart.ownerHandle} />
     </div>
   );
 }

@@ -1,38 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Phone } from "lucide-react";
 import { toast } from "sonner";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [mode, setMode] = useState<"options" | "phone" | "otp">("options");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
 
   const handleGoogle = () => {
-    toast.success("Signed in (mock)");
-    setTimeout(() => router.push("/dashboard"), 300);
+    // Full-page navigation so the browser follows redirects through Google.
+    window.location.href = "/api/v1/auth/google";
   };
 
   const sendOtp = () => {
-    if (!/^\d{10}$/.test(phone)) {
-      toast.error("Please enter a 10-digit phone number");
-      return;
-    }
-    toast.success("OTP sent (mock)");
-    setMode("otp");
+    toast.info("Phone sign-in coming soon. Use Google for now.");
   };
 
   const verifyOtp = () => {
-    if (!/^\d{6}$/.test(otp)) {
-      toast.error("Please enter a 6-digit OTP");
-      return;
-    }
-    toast.success("Verified (mock)");
-    setTimeout(() => router.push("/dashboard"), 300);
+    toast.info("Phone sign-in coming soon. Use Google for now.");
   };
 
   return (

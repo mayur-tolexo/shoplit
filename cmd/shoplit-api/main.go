@@ -1,4 +1,3 @@
-// cmd/shoplit-api/main.go
 package main
 
 import (
@@ -14,9 +13,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/mayur-tolexo/shoplit/internal/auth"
+	"github.com/mayur-tolexo/shoplit/internal/carts"
 	"github.com/mayur-tolexo/shoplit/internal/config"
 	"github.com/mayur-tolexo/shoplit/internal/db"
+	sqlcgen "github.com/mayur-tolexo/shoplit/internal/db/sqlc"
 	"github.com/mayur-tolexo/shoplit/internal/httpx"
+	"github.com/mayur-tolexo/shoplit/internal/ogfetch"
+	"github.com/mayur-tolexo/shoplit/internal/publicapi"
 	"github.com/mayur-tolexo/shoplit/internal/redis"
 )
 
@@ -32,7 +36,6 @@ func run() error {
 	if err != nil {
 		return err
 	}
-
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: parseLevel(cfg.LogLevel),
 	})))
@@ -46,17 +49,55 @@ func run() error {
 	}
 	defer pool.Close()
 
+	// Apply migrations on startup (dev convenience — prod uses a dedicated job).
+	if err := db.MigrateUp(cfg.DBDSN, "internal/db/migrations"); err != nil {
+		return err
+	}
+
+	q := sqlcgen.New(pool)
+
 	rc, err := redis.Open(ctx, cfg.RedisURL)
 	if err != nil {
 		return err
 	}
 	defer rc.Close()
 
-	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
-	r.Use(middleware.Recoverer)
+	sm := auth.NewSessionManager(cfg.SessionSecret)
+	upsert := auth.NewUserUpsertFn(q)
+	fetcher := ogfetch.New(rc)
+	svc := carts.NewService(q)
 
+	r := chi.NewRouter()
+	r.Use(middleware.RequestID, middleware.Recoverer)
 	r.Method(http.MethodGet, "/health", httpx.Health(pool, rc, cfg.Env))
+
+	// Auth endpoints (no middleware — these establish the session). Google
+	// OAuth routes return 503 with a helpful message until GCP creds are
+	// configured (see docs/superpowers/runbooks/google-oauth-setup.md).
+	if cfg.GoogleOAuthConfigured() {
+		oauthCfg := auth.GoogleConfig(cfg.GoogleOAuthClientID, cfg.GoogleOAuthClientSecret, cfg.GoogleOAuthRedirectURL)
+		r.Get("/api/v1/auth/google", auth.HandleGoogleStart(oauthCfg, sm).ServeHTTP)
+		r.Get("/api/v1/auth/google/callback",
+			auth.HandleGoogleCallback(oauthCfg, sm, upsert, cfg.FrontendURL, auth.GoogleUserInfoURL).ServeHTTP)
+	} else {
+		notConfigured := func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "Google sign-in not configured on this server. See docs/superpowers/runbooks/google-oauth-setup.md.", http.StatusServiceUnavailable)
+		}
+		r.Get("/api/v1/auth/google", notConfigured)
+		r.Get("/api/v1/auth/google/callback", notConfigured)
+	}
+	r.Post("/api/v1/auth/logout", auth.HandleLogout(sm).ServeHTTP)
+
+	// Public, unauthenticated read endpoints
+	r.Route("/api/public", func(r chi.Router) {
+		publicapi.RegisterRoutes(r, svc)
+	})
+
+	// Authenticated creator endpoints
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Use(sm.RequireUser())
+		carts.RegisterRoutes(r, svc, fetcher)
+	})
 
 	srv := &http.Server{
 		Addr:              cfg.APIAddr,
