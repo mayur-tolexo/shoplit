@@ -67,6 +67,10 @@ type Config struct {
 	// After successful sign-in, the OAuth callback redirects the browser to
 	// this URL on the frontend.
 	FrontendURL string `env:"SHOPLIT_FRONTEND_URL" envDefault:"http://localhost:3000"`
+
+	// Directory where uploaded product/cover images are written and served
+	// from (under /uploads). In prod this is a persistent Docker volume.
+	UploadDir string `env:"SHOPLIT_UPLOAD_DIR" envDefault:"./uploads"`
 }
 
 // GoogleOAuthConfigured returns true only when both client id and secret are set.

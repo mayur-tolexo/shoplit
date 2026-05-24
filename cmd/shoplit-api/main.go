@@ -27,6 +27,7 @@ import (
 	"github.com/mayur-tolexo/shoplit/internal/ogfetch"
 	"github.com/mayur-tolexo/shoplit/internal/publicapi"
 	"github.com/mayur-tolexo/shoplit/internal/redis"
+	"github.com/mayur-tolexo/shoplit/internal/uploads"
 )
 
 func main() {
@@ -119,11 +120,20 @@ func run() error {
 		r.Post("/feedback", fb.Handler())
 	})
 
+	// Public, read-only serving of uploaded images. Files are written by the
+	// authenticated upload endpoint below; here anyone can fetch them so they
+	// render on public cart pages.
+	if err := os.MkdirAll(cfg.UploadDir, 0o755); err != nil {
+		slog.Warn("could not create upload dir", "dir", cfg.UploadDir, "err", err)
+	}
+	r.Handle("/uploads/*", http.StripPrefix("/uploads/", uploads.FileServer(cfg.UploadDir)))
+
 	// Authenticated creator endpoints
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(sm.RequireUser())
 		r.Post("/extension/token", exttoken.MintHandler(q))
 		r.Get("/feedback", fb.ListHandler())
+		r.Post("/uploads", uploads.Handler(cfg.UploadDir))
 		carts.RegisterRoutes(r, svc, fetcher)
 	})
 

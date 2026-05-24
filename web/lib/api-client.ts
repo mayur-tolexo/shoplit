@@ -195,6 +195,22 @@ export async function logout(): Promise<void> {
   await fetch(`${API_BASE}/api/v1/auth/logout`, { method: "POST", credentials: "include" });
 }
 
+// Upload a product/cover photo (multipart). Returns an absolute image URL that
+// renders in both dev (api origin) and prod (same origin via Caddy). Let the
+// browser set the multipart Content-Type boundary — don't set it manually.
+export async function uploadImage(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`${API_BASE}/api/v1/uploads`, {
+    method: "POST",
+    body: fd,
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`upload failed (${res.status})`);
+  const data = (await res.json()) as { url: string };
+  return API_BASE + data.url;
+}
+
 export async function submitFeedback(input: { message: string; email?: string; name?: string; page?: string }): Promise<void> {
   await jsonFetch("/api/public/feedback", { method: "POST", body: JSON.stringify(input) });
 }
