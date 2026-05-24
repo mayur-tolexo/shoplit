@@ -88,6 +88,35 @@ func (q *Queries) BumpClickDaily(ctx context.Context, linkID int64) error {
 	return err
 }
 
+const cartClicks7d = `-- name: CartClicks7d :one
+SELECT COALESCE(SUM(cd.clicks), 0)::bigint AS clicks
+FROM click_daily cd
+JOIN links l ON cd.link_id = l.id
+WHERE l.cart_id = $1 AND cd.day >= current_date - 6
+`
+
+func (q *Queries) CartClicks7d(ctx context.Context, cartID pgtype.Int8) (int64, error) {
+	row := q.db.QueryRow(ctx, cartClicks7d, cartID)
+	var clicks int64
+	err := row.Scan(&clicks)
+	return clicks, err
+}
+
+const cartViews7d = `-- name: CartViews7d :one
+
+SELECT COALESCE(SUM(views), 0)::bigint AS views
+FROM cart_views_daily
+WHERE cart_id = $1 AND day >= current_date - 6
+`
+
+// ─── ANALYTICS (reads) ──────────────────────────────────────────────────────
+func (q *Queries) CartViews7d(ctx context.Context, cartID int64) (int64, error) {
+	row := q.db.QueryRow(ctx, cartViews7d, cartID)
+	var views int64
+	err := row.Scan(&views)
+	return views, err
+}
+
 const createCart = `-- name: CreateCart :one
 
 INSERT INTO carts (user_id, slug, title, description, cover_image_url, is_public)

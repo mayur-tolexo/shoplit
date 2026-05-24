@@ -60,6 +60,14 @@ func (s *Service) ListMyCarts(ctx context.Context, userID int64) ([]sqlcgen.Cart
 	return s.q.ListCartsByUser(ctx, userID)
 }
 
+// CartStats7d returns the cart's view and click counts over the last 7 days.
+// Best-effort: any read error yields 0 rather than failing the request.
+func (s *Service) CartStats7d(ctx context.Context, cartID int64) (views, clicks int64) {
+	views, _ = s.q.CartViews7d(ctx, cartID)
+	clicks, _ = s.q.CartClicks7d(ctx, pgtype.Int8{Int64: cartID, Valid: true})
+	return views, clicks
+}
+
 // ListMyCoverImages returns the distinct cover image URLs the user has used
 // across their carts, most-recent first — their "personal" cover library.
 func (s *Service) ListMyCoverImages(ctx context.Context, userID int64) ([]string, error) {

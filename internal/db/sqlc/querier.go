@@ -16,6 +16,9 @@ type Querier interface {
 	ArchiveCart(ctx context.Context, id int64) error
 	BumpCartViewsDaily(ctx context.Context, cartID int64) error
 	BumpClickDaily(ctx context.Context, linkID int64) error
+	CartClicks7d(ctx context.Context, cartID pgtype.Int8) (int64, error)
+	// ─── ANALYTICS (reads) ──────────────────────────────────────────────────────
+	CartViews7d(ctx context.Context, cartID int64) (int64, error)
 	// ─── CARTS ──────────────────────────────────────────────────────────────────
 	CreateCart(ctx context.Context, arg CreateCartParams) (Cart, error)
 	// ─── EXTENSION TOKENS ────────────────────────────────────────────────────────

@@ -30,6 +30,6 @@ func getPublicCart(svc *carts.Service) http.HandlerFunc {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(carts.MarshalCart(cart, user, items))
+		_ = json.NewEncoder(w).Encode(carts.MarshalCart(cart, user, items, 0, 0))
 	}
 }

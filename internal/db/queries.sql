@@ -135,3 +135,16 @@ UPDATE extension_tokens SET last_used_at = now() WHERE id = $1;
 
 -- name: InsertFeedback :exec
 INSERT INTO feedback (message, email, name, page) VALUES ($1, $2, $3, $4);
+
+-- ─── ANALYTICS (reads) ──────────────────────────────────────────────────────
+
+-- name: CartViews7d :one
+SELECT COALESCE(SUM(views), 0)::bigint AS views
+FROM cart_views_daily
+WHERE cart_id = $1 AND day >= current_date - 6;
+
+-- name: CartClicks7d :one
+SELECT COALESCE(SUM(cd.clicks), 0)::bigint AS clicks
+FROM click_daily cd
+JOIN links l ON cd.link_id = l.id
+WHERE l.cart_id = $1 AND cd.day >= current_date - 6;

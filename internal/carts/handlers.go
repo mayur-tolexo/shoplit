@@ -64,7 +64,8 @@ func listCarts(svc *Service) http.HandlerFunc {
 		owner, _ := svc.GetUser(r.Context(), uid)
 		for _, c := range list {
 			items, _ := svc.ListCartItems(r.Context(), c.ID)
-			out = append(out, MarshalCart(c, owner, items))
+			v, cl := svc.CartStats7d(r.Context(), c.ID)
+			out = append(out, MarshalCart(c, owner, items, int(v), int(cl)))
 		}
 		writeJSON(w, http.StatusOK, out)
 	}
@@ -86,7 +87,7 @@ func createCart(svc *Service) http.HandlerFunc {
 			return
 		}
 		owner, _ := svc.GetUser(r.Context(), uid)
-		writeJSON(w, http.StatusCreated, MarshalCart(cart, owner, nil))
+		writeJSON(w, http.StatusCreated, MarshalCart(cart, owner, nil, 0, 0))
 	}
 }
 
@@ -112,7 +113,8 @@ func getCart(svc *Service) http.HandlerFunc {
 			return
 		}
 		owner, _ := svc.GetUser(r.Context(), uid)
-		writeJSON(w, http.StatusOK, MarshalCart(cart, owner, items))
+		v, cl := svc.CartStats7d(r.Context(), cart.ID)
+		writeJSON(w, http.StatusOK, MarshalCart(cart, owner, items, int(v), int(cl)))
 	}
 }
 
@@ -147,7 +149,7 @@ func updateCart(svc *Service) http.HandlerFunc {
 			return
 		}
 		owner, _ := svc.GetUser(r.Context(), uid)
-		writeJSON(w, http.StatusOK, MarshalCart(cart, owner, nil))
+		writeJSON(w, http.StatusOK, MarshalCart(cart, owner, nil, 0, 0))
 	}
 }
 

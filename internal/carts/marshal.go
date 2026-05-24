@@ -57,7 +57,9 @@ func MarshalUser(u sqlcgen.User) UserJSON {
 }
 
 // MarshalCart converts a sqlc Cart, its owner, and item rows into CartJSON.
-func MarshalCart(c sqlcgen.Cart, owner sqlcgen.User, items []sqlcgen.ListCartItemsRow) CartJSON {
+// viewsLast7d/clicksLast7d are the analytics counts (0 where not needed, e.g.
+// the public page that doesn't display them).
+func MarshalCart(c sqlcgen.Cart, owner sqlcgen.User, items []sqlcgen.ListCartItemsRow, viewsLast7d, clicksLast7d int) CartJSON {
 	out := CartJSON{
 		ID:               intStr(c.ID),
 		Slug:             c.Slug,
@@ -68,8 +70,8 @@ func MarshalCart(c sqlcgen.Cart, owner sqlcgen.User, items []sqlcgen.ListCartIte
 		Bio:              pgTextStr(c.Description),
 		CoverImageURL:    pgTextStr(c.CoverImageUrl),
 		AccentHex:        "#B5532A",
-		ViewsLast7d:      0,
-		ClicksLast7d:     0,
+		ViewsLast7d:      viewsLast7d,
+		ClicksLast7d:     clicksLast7d,
 		CreatedAt:        c.CreatedAt.Time.Format(time.RFC3339),
 		UpdatedAt:        c.UpdatedAt.Time.Format(time.RFC3339),
 	}
