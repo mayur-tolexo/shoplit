@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/mayur-tolexo/shoplit/internal/auth"
 	sqlcgen "github.com/mayur-tolexo/shoplit/internal/db/sqlc"
@@ -60,27 +59,17 @@ func MintHandler(q *sqlcgen.Queries) http.HandlerFunc {
 		}
 		raw, hash, err := Generate()
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "could not generate token", http.StatusInternalServerError)
 			return
 		}
 		if err := q.CreateExtensionToken(r.Context(), sqlcgen.CreateExtensionTokenParams{
 			UserID:    uid,
 			TokenHash: hash,
 		}); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "could not create token", http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]string{"token": raw})
 	}
-}
-
-// BearerToken extracts the token from an "Authorization: Bearer <t>" header.
-func BearerToken(r *http.Request) string {
-	h := r.Header.Get("Authorization")
-	const p = "Bearer "
-	if strings.HasPrefix(h, p) {
-		return strings.TrimSpace(h[len(p):])
-	}
-	return ""
 }
