@@ -39,6 +39,7 @@ func TestLoad_AppliesDefaults(t *testing.T) {
 	assert.Equal(t, "redis://localhost:6379/0", cfg.RedisURL)
 	assert.Equal(t, "test-secret-do-not-use-in-prod", cfg.SessionSecret)
 	assert.Equal(t, "http://localhost:8080/api/v1/auth/google/callback", cfg.GoogleOAuthRedirectURL)
+	assert.Equal(t, "http://localhost:3000", cfg.CORSAllowedOrigin)
 	assert.Equal(t, "http://localhost:3000", cfg.FrontendURL)
 }
 

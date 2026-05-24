@@ -1,22 +1,25 @@
 // web/lib/api-client.ts
-// HTTP client to shoplit-api. Works in both browser and server contexts.
+// HTTP client to shoplit-api. Talks to the backend DIRECTLY (absolute URL)
+// in both browser and server contexts — no Next.js rewrite proxy in the
+// path, so there's no ambiguity about whether cookies survive the hop.
 //
-// Browser: same-origin via Next.js rewrites (next.config.mjs). Session
-// cookie attaches automatically. Just pass a relative path.
+// Browser: cross-origin fetch to API_BASE with credentials:"include". The
+// backend's CORS middleware allows the frontend origin + credentials, and
+// because :3000 and :8080 are the same *site*, the SameSite=Lax session
+// cookie is sent automatically.
 //
-// Server (Server Components, route handlers): Next.js rewrites don't apply
-// — fetch() runs in Node and needs an absolute URL. We resolve to
-// SHOPLIT_API_INTERNAL_URL (defaults to http://localhost:8080).
+// Server (Server Components): fetch() runs in Node, no browser cookie jar —
+// callers pass `{ cookie }` from cookies().toString() (next/headers) and we
+// forward it as a Cookie header. We DON'T import next/headers here because
+// this file is also bundled into client components.
 //
-// Authenticated server-side calls: pass `{ cookie }` from
-// `cookies().toString()` (next/headers). We DON'T import next/headers here
-// directly because this file is also bundled into client components — see
-// `web/app/dashboard/page.tsx` for the canonical call pattern.
+// API_BASE comes from NEXT_PUBLIC_API_BASE_URL (available in both server and
+// client bundles); defaults to http://localhost:8080.
 
 import type { Cart, OGResult, Product, User } from "./types";
 
-const SERVER_API_BASE =
-  process.env.SHOPLIT_API_INTERNAL_URL || "http://localhost:8080";
+export const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
 class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -26,12 +29,8 @@ class ApiError extends Error {
 
 type AuthOpts = { cookie?: string };
 
-function isServer(): boolean {
-  return typeof window === "undefined";
-}
-
 function resolveURL(path: string): string {
-  return isServer() ? SERVER_API_BASE + path : path;
+  return API_BASE + path;
 }
 
 async function jsonFetch<T>(path: string, init?: RequestInit & AuthOpts): Promise<T> {
@@ -156,5 +155,5 @@ export async function fetchOG(url: string): Promise<OGResult> {
 }
 
 export async function logout(): Promise<void> {
-  await fetch("/api/v1/auth/logout", { method: "POST", credentials: "include" });
+  await fetch(`${API_BASE}/api/v1/auth/logout`, { method: "POST", credentials: "include" });
 }

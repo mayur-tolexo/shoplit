@@ -33,7 +33,17 @@ type Config struct {
 	// other features without GCP setup.
 	GoogleOAuthClientID     string `env:"GOOGLE_OAUTH_CLIENT_ID"`
 	GoogleOAuthClientSecret string `env:"GOOGLE_OAUTH_CLIENT_SECRET"`
-	GoogleOAuthRedirectURL  string `env:"GOOGLE_OAUTH_REDIRECT_URL" envDefault:"http://localhost:8080/api/v1/auth/google/callback"`
+	// Redirect hits the backend directly (:8080) — this must EXACTLY match
+	// the Authorized redirect URI registered in the GCP OAuth client. The
+	// browser does the OAuth dance directly against the backend (full-page
+	// navigation, not fetch), so the state + session cookies are set and read
+	// by the same origin. CORS (see CORSAllowedOrigin) lets the frontend's
+	// XHR calls reach the backend cross-origin with credentials.
+	GoogleOAuthRedirectURL string `env:"GOOGLE_OAUTH_REDIRECT_URL" envDefault:"http://localhost:8080/api/v1/auth/google/callback"`
+
+	// Origin allowed to make credentialed cross-origin requests to the API.
+	// In dev this is the Next.js frontend.
+	CORSAllowedOrigin string `env:"SHOPLIT_CORS_ORIGIN" envDefault:"http://localhost:3000"`
 
 	// After successful sign-in, the OAuth callback redirects the browser to
 	// this URL on the frontend.

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Phone } from "lucide-react";
 import { toast } from "sonner";
+import { API_BASE } from "@/lib/api-client";
 
 export default function LoginPage() {
   const [mode, setMode] = useState<"options" | "phone" | "otp">("options");
@@ -11,8 +12,10 @@ export default function LoginPage() {
   const [otp, setOtp] = useState("");
 
   const handleGoogle = () => {
-    // Full-page navigation so the browser follows redirects through Google.
-    window.location.href = "/api/v1/auth/google";
+    // Full-page navigation directly to the backend so the OAuth state +
+    // session cookies are set and read by the same origin (:8080). The
+    // callback then redirects back to the frontend.
+    window.location.href = `${API_BASE}/api/v1/auth/google`;
   };
 
   const sendOtp = () => {

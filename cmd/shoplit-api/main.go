@@ -69,6 +69,7 @@ func run() error {
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, middleware.Recoverer)
+	r.Use(httpx.CORS(cfg.CORSAllowedOrigin))
 	r.Method(http.MethodGet, "/health", httpx.Health(pool, rc, cfg.Env))
 
 	// Auth endpoints (no middleware — these establish the session). Google

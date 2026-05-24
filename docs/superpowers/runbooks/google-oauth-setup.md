@@ -41,6 +41,6 @@ openssl rand -hex 32
 ## Prod / staging differences
 
 - Use a separate OAuth client per environment (so dev creds can't be used against prod).
-- Add the prod redirect URI: `https://api.shoplit.app/api/v1/auth/google/callback`.
+- Add the prod redirect URI: `https://api.shoplit.app/api/v1/auth/google/callback` (the API host).
 - Publish the OAuth consent screen (otherwise only test users can sign in).
 - Set a strong session secret per environment.
