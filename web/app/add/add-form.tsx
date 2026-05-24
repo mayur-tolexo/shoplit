@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { addSharedItem, createCart } from "@/lib/api-client";
@@ -14,21 +14,19 @@ const inputCls =
 
 export function AddForm({ carts, initial }: { carts: CartOpt[]; initial: ParsedShare }) {
   const [cartList, setCartList] = useState<CartOpt[]>(carts);
-  const defaultCart = useMemo(() => {
-    if (typeof window !== "undefined") {
-      const last = window.localStorage.getItem(LAST_CART_KEY);
-      if (last && carts.some((c) => c.id === last)) return last;
-    }
-    return carts[0]?.id ?? "";
-  }, [carts]);
+  const [cartId, setCartId] = useState(carts[0]?.id ?? "");
 
-  const [cartId, setCartId] = useState(defaultCart);
+  useEffect(() => {
+    const last = localStorage.getItem(LAST_CART_KEY);
+    if (last && carts.some((c) => c.id === last)) setCartId(last);
+  }, [carts]);
   const [title, setTitle] = useState(initial.title);
   const [priceText, setPriceText] = useState(initial.priceText);
   const [imageUrl, setImageUrl] = useState("");
   const [originalUrl, setOriginalUrl] = useState(initial.productUrl);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [cartBusy, setCartBusy] = useState(false);
   const [added, setAdded] = useState<CartOpt | null>(null);
   const [newCartTitle, setNewCartTitle] = useState("");
 
@@ -66,6 +64,8 @@ export function AddForm({ carts, initial }: { carts: CartOpt[]; initial: ParsedS
 
   const makeCart = async () => {
     if (!newCartTitle.trim()) return;
+    if (cartBusy) return;
+    setCartBusy(true);
     try {
       const c = await createCart(newCartTitle.trim());
       const opt = { id: c.id, title: c.title, slug: c.slug };
@@ -74,6 +74,8 @@ export function AddForm({ carts, initial }: { carts: CartOpt[]; initial: ParsedS
       setNewCartTitle("");
     } catch {
       toast.error("Couldn't create the cart.");
+    } finally {
+      setCartBusy(false);
     }
   };
 
@@ -99,8 +101,8 @@ export function AddForm({ carts, initial }: { carts: CartOpt[]; initial: ParsedS
       <div className="space-y-3">
         <p className="text-sm text-muted">You don&apos;t have a cart yet — create one to start adding.</p>
         <input value={newCartTitle} onChange={(e) => setNewCartTitle(e.target.value)} placeholder="Cart name (e.g. My picks)" className={inputCls} />
-        <button onClick={makeCart} className="w-full rounded-full bg-ink text-cream py-3 font-medium hover:opacity-90">
-          Create cart
+        <button onClick={makeCart} disabled={cartBusy} className="w-full rounded-full bg-ink text-cream py-3 font-medium hover:opacity-90 disabled:opacity-60">
+          {cartBusy ? "Creating…" : "Create cart"}
         </button>
       </div>
     );
