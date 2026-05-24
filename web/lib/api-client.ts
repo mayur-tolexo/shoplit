@@ -1,9 +1,22 @@
 // web/lib/api-client.ts
-// Real HTTP client to shoplit-api. Calls are same-origin (via Next.js
-// rewrites in next.config.mjs) so credentials: "include" picks up the
-// session cookie automatically.
+// HTTP client to shoplit-api. Works in both browser and server contexts.
+//
+// Browser: same-origin via Next.js rewrites (next.config.mjs). Session
+// cookie attaches automatically. Just pass a relative path.
+//
+// Server (Server Components, route handlers): Next.js rewrites don't apply
+// — fetch() runs in Node and needs an absolute URL. We resolve to
+// SHOPLIT_API_INTERNAL_URL (defaults to http://localhost:8080).
+//
+// Authenticated server-side calls: pass `{ cookie }` from
+// `cookies().toString()` (next/headers). We DON'T import next/headers here
+// directly because this file is also bundled into client components — see
+// `web/app/dashboard/page.tsx` for the canonical call pattern.
 
 import type { Cart, OGResult, Product, User } from "./types";
+
+const SERVER_API_BASE =
+  process.env.SHOPLIT_API_INTERNAL_URL || "http://localhost:8080";
 
 class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -11,11 +24,31 @@ class ApiError extends Error {
   }
 }
 
-async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
+type AuthOpts = { cookie?: string };
+
+function isServer(): boolean {
+  return typeof window === "undefined";
+}
+
+function resolveURL(path: string): string {
+  return isServer() ? SERVER_API_BASE + path : path;
+}
+
+async function jsonFetch<T>(path: string, init?: RequestInit & AuthOpts): Promise<T> {
+  const { cookie, ...rest } = init ?? {};
+  const headers = new Headers(rest.headers);
+  if (cookie && !headers.has("Cookie")) {
+    headers.set("Cookie", cookie);
+  }
+  if (rest.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const res = await fetch(resolveURL(path), {
     credentials: "include",
-    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
-    ...init,
+    cache: "no-store",
+    ...rest,
+    headers,
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -25,26 +58,26 @@ async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
-export async function getCurrentUser(): Promise<User> {
-  return jsonFetch<User>("/api/v1/me");
+export async function getCurrentUser(opts?: AuthOpts): Promise<User> {
+  return jsonFetch<User>("/api/v1/me", opts);
 }
 
-export async function listMyCarts(): Promise<Cart[]> {
-  return jsonFetch<Cart[]>("/api/v1/carts");
+export async function listMyCarts(opts?: AuthOpts): Promise<Cart[]> {
+  return jsonFetch<Cart[]>("/api/v1/carts", opts);
 }
 
-export async function getCartBySlug(slug: string): Promise<Cart | null> {
+export async function getCartBySlug(slug: string, opts?: AuthOpts): Promise<Cart | null> {
   try {
-    return await jsonFetch<Cart>(`/api/public/carts/${slug}`);
+    return await jsonFetch<Cart>(`/api/public/carts/${slug}`, opts);
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) return null;
     throw e;
   }
 }
 
-export async function getCartById(id: string): Promise<Cart | null> {
+export async function getCartById(id: string, opts?: AuthOpts): Promise<Cart | null> {
   try {
-    return await jsonFetch<Cart>(`/api/v1/carts/${id}`);
+    return await jsonFetch<Cart>(`/api/v1/carts/${id}`, opts);
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) return null;
     throw e;

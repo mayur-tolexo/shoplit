@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { Eye, MousePointerClick, Plus, ShoppingBag, Sparkles } from "lucide-react";
+import type { Cart, User } from "@/lib/types";
 import { getCurrentUser, listMyCarts } from "@/lib/api-client";
 import { CartCard } from "@/components/cart-card";
 import { AnimatedNumber } from "@/components/animated-number";
@@ -7,7 +10,22 @@ import { AnimatedNumber } from "@/components/animated-number";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [user, carts] = await Promise.all([getCurrentUser(), listMyCarts()]);
+  // Forward the incoming request's cookies to the backend so authenticated
+  // server-side calls see the same session the browser does.
+  const cookie = cookies().toString();
+  let user: User;
+  let carts: Cart[];
+  try {
+    [user, carts] = await Promise.all([
+      getCurrentUser({ cookie }),
+      listMyCarts({ cookie }),
+    ]);
+  } catch {
+    // 401 (or any auth failure) → kick to /login. The client-side NavBar
+    // also redirects on its own getCurrentUser() failure; this one is the
+    // server-side guard so the page never renders without auth.
+    redirect("/login");
+  }
 
   const totals = carts.reduce(
     (acc, c) => ({

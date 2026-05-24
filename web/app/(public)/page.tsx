@@ -10,7 +10,15 @@ import { listMyCarts } from "@/lib/api-client";
 export const dynamic = "force-dynamic";
 
 export default async function LandingPage() {
-  const exampleCarts = (await listMyCarts()).slice(0, 3);
+  // listMyCarts requires auth. For logged-out landing-page visitors it 401s,
+  // which is expected — swallow it so the page renders with zero examples.
+  // A dedicated /api/public/featured endpoint will replace this in v2.
+  let exampleCarts: Awaited<ReturnType<typeof listMyCarts>> = [];
+  try {
+    exampleCarts = (await listMyCarts()).slice(0, 3);
+  } catch {
+    exampleCarts = [];
+  }
   return (
     <>
       <NavBar variant="marketing" />
