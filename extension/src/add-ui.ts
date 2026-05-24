@@ -62,6 +62,7 @@ export async function renderAddUI({ root, product, onConnectNeeded }: RenderOpts
       </div>
       <input id="sl-price" class="sl-input" value="${escapeAttr(product.priceText)}" placeholder="₹ price"/>
       <input id="sl-image" class="sl-input" value="${escapeAttr(product.imageUrl)}" placeholder="Image URL"/>
+      <input id="sl-url" class="sl-input" value="${escapeAttr(product.url)}" placeholder="Product / affiliate link"/>
       <select id="sl-cart" class="sl-input">${options}</select>
       <input id="sl-note" class="sl-input" placeholder="Note (optional)"/>
       <button id="sl-add" class="sl-btn">＋ Add to cart</button>
@@ -81,6 +82,9 @@ export async function renderAddUI({ root, product, onConnectNeeded }: RenderOpts
           title: $<HTMLInputElement>("#sl-title").value.trim(),
           priceText: $<HTMLInputElement>("#sl-price").value.trim(),
           imageUrl: $<HTMLInputElement>("#sl-image").value.trim(),
+          // Creator can paste their own affiliate/short link to override the
+          // detected product URL — this becomes the redirect target.
+          url: $<HTMLInputElement>("#sl-url").value.trim() || product.url,
         },
         $<HTMLInputElement>("#sl-note").value.trim(),
       );

@@ -11,23 +11,47 @@ chrome.runtime.onMessage.addListener((msg: Msg, _sender, sendResponse) => {
   return false;
 });
 
-// Inject a floating "+ shoplit" button when the page looks like a product.
+const BTN_ID = "sl-add-btn";
+
+// Inject an "Add to shoplit" button on product pages — inline right under the
+// product title (most retailers use the first visible <h1>), falling back to a
+// floating bottom-LEFT button if no title node is found (right side tends to
+// collide with retailer chat widgets).
 function injectButton() {
-  if (document.getElementById("sl-fab")) return;
+  if (document.getElementById(BTN_ID)) return;
   const product = extractProduct(document);
   if (!product) return; // not a product page
 
-  const fab = document.createElement("button");
-  fab.id = "sl-fab";
-  fab.textContent = "＋ shoplit";
-  Object.assign(fab.style, {
-    position: "fixed", right: "18px", bottom: "18px", zIndex: "2147483647",
+  const btn = document.createElement("button");
+  btn.id = BTN_ID;
+  btn.type = "button";
+  btn.textContent = "＋ Add to shoplit";
+  Object.assign(btn.style, {
     background: "#B5532A", color: "#fff", border: "0", borderRadius: "999px",
-    padding: "10px 16px", font: "600 14px system-ui, sans-serif", cursor: "pointer",
-    boxShadow: "0 4px 14px rgba(0,0,0,.25)",
+    padding: "9px 16px", font: "600 14px system-ui, sans-serif", cursor: "pointer",
+    boxShadow: "0 2px 8px rgba(0,0,0,.18)", zIndex: "2147483647",
   });
-  fab.onclick = () => togglePanel(product);
-  document.body.appendChild(fab);
+  btn.onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    togglePanel(product);
+  };
+
+  const title = visibleTitle();
+  if (title) {
+    btn.style.display = "inline-flex";
+    btn.style.margin = "12px 0";
+    title.insertAdjacentElement("afterend", btn);
+  } else {
+    Object.assign(btn.style, { position: "fixed", left: "18px", bottom: "18px" });
+    document.body.appendChild(btn);
+  }
+}
+
+// The product title is almost always the first on-screen <h1>.
+function visibleTitle(): HTMLElement | null {
+  const heads = Array.from(document.querySelectorAll<HTMLElement>("h1"));
+  return heads.find((h) => h.offsetParent !== null && (h.textContent ?? "").trim().length > 3) ?? null;
 }
 
 function togglePanel(product: ReturnType<typeof extractProduct>) {
@@ -38,9 +62,11 @@ function togglePanel(product: ReturnType<typeof extractProduct>) {
   }
   const panel = document.createElement("div");
   panel.id = "sl-panel";
+  // Top-right, below typical sticky headers — clears bottom-corner chat widgets.
   Object.assign(panel.style, {
-    position: "fixed", right: "18px", bottom: "64px", zIndex: "2147483647",
-    width: "320px", background: "#fbf7f0", color: "#1a1a1a",
+    position: "fixed", right: "18px", top: "84px", zIndex: "2147483647",
+    width: "320px", maxHeight: "80vh", overflow: "auto",
+    background: "#fbf7f0", color: "#1a1a1a",
     border: "1px solid #d9d2c5", borderRadius: "12px",
     boxShadow: "0 8px 28px rgba(0,0,0,.25)", font: "14px system-ui, sans-serif",
   });
