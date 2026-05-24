@@ -94,14 +94,22 @@ export default async function DashboardPage() {
           </div>
 
           {/* HEADER ROW */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between gap-3 mb-6">
             <h2 className="font-serif text-2xl">All carts</h2>
-            <Link
-              href="/dashboard/carts/new"
-              className="inline-flex items-center gap-2 rounded-full bg-ink text-cream px-5 py-2.5 font-medium hover:opacity-90 transition-opacity"
-            >
-              <Plus size={16} /> New cart
-            </Link>
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                href="/add"
+                className="inline-flex items-center gap-2 rounded-full bg-ink text-cream px-5 py-2.5 font-medium hover:opacity-90 transition-opacity"
+              >
+                <Plus size={16} /> Add a product
+              </Link>
+              <Link
+                href="/dashboard/carts/new"
+                className="inline-flex items-center gap-2 rounded-full border border-ink px-4 py-2.5 font-medium hover:bg-paper transition-colors"
+              >
+                New cart
+              </Link>
+            </div>
           </div>
 
           {/* GRID */}

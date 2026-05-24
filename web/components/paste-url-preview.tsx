@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Loader2, Link2, Plus } from "lucide-react";
 import { fetchOG } from "@/lib/api-client";
+import { parseShare } from "@/lib/parse-share";
 import type { Product, Retailer } from "@/lib/types";
 import { RetailerIcon, retailerLabel } from "./retailer-icon";
 
@@ -15,6 +16,9 @@ interface PasteUrlPreviewProps {
 // (some retailers do), the fields are blank and the creator fills them in
 // manually — so adding a product never dead-ends.
 export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
+  // What the creator pasted (kept intact so large "share text" stays visible).
+  const [rawInput, setRawInput] = useState("");
+  // The clean product URL extracted from it (editable in the resolved form).
   const [url, setUrl] = useState("");
   const [pending, startTransition] = useTransition();
   const [showForm, setShowForm] = useState(false);
@@ -31,6 +35,7 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
   const [canonicalUrl, setCanonicalUrl] = useState("");
 
   const reset = () => {
+    setRawInput("");
     setUrl("");
     setShowForm(false);
     setAutofilled(false);
@@ -43,41 +48,37 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
   };
 
   const handlePaste = (raw: string) => {
-    setUrl(raw);
-    // Accept full retailer "share text", not just a bare URL. Apps share
-    // things like "Check out this product I found on Nykaa: <name> <url>" —
-    // pull the URL out of anywhere in the text.
-    const urlMatch = raw.match(/https?:\/\/[^\s]+/);
-    if (!urlMatch) {
+    setRawInput(raw);
+    // Accept full retailer "share text", not just a bare URL — parseShare pulls
+    // out a clean http(s) link (upgrading scheme-less ones, trimming trailing
+    // punctuation) plus a best-effort title and price.
+    const parsed = parseShare({ text: raw, url: raw });
+    if (!parsed.productUrl) {
+      setUrl("");
       setShowForm(false);
       return;
     }
-    const targetUrl = urlMatch[0];
-    // The text around the URL is usually the product name. Strip a
-    // "Check out … on <retailer>:" style lead-in if present.
-    let shareTitle = raw.replace(targetUrl, "").trim();
-    const seg = shareTitle.match(/^(.*?:)\s*([\s\S]+)$/);
-    if (seg && /check out|found on|shared|recommend|buy this|loving/i.test(seg[1])) {
-      shareTitle = seg[2].trim();
-    }
-    setUrl(targetUrl); // normalize the field to just the URL
+    setUrl(parsed.productUrl);
 
     startTransition(async () => {
       try {
-        const og = await fetchOG(targetUrl);
+        const og = await fetchOG(parsed.productUrl);
         setRetailer(og.retailer);
         setCanonicalUrl(og.canonicalUrl ?? "");
         // Prefer the clean title from the share text; fall back to OG. This
         // gives a usable title even when the server fetch is blocked.
-        setTitle(shareTitle || og.title || "");
+        setTitle(parsed.title || og.title || "");
         if (og.ok) {
           setImageUrl(og.imageUrl ?? "");
-          setPriceText(og.priceText ?? "");
+          setPriceText(og.priceText || parsed.priceText || "");
+        } else {
+          setPriceText(parsed.priceText || "");
         }
-        setAutofilled(Boolean(shareTitle || (og.ok && (og.title || og.imageUrl))));
+        setAutofilled(Boolean(parsed.title || (og.ok && (og.title || og.imageUrl))));
       } catch {
-        setTitle(shareTitle);
-        setAutofilled(Boolean(shareTitle));
+        setTitle(parsed.title);
+        setPriceText(parsed.priceText || "");
+        setAutofilled(Boolean(parsed.title));
       } finally {
         setShowForm(true);
       }
@@ -103,15 +104,20 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
       <label className="block">
         <span className="block text-sm font-medium mb-2">Paste a product link — or the whole &ldquo;share&rdquo; text from a shopping app</span>
         <div className="relative">
-          <Link2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
-          <input
-            type="url"
-            value={url}
+          <Link2 size={16} className="absolute left-3 top-4 text-muted" aria-hidden />
+          <textarea
+            rows={2}
+            value={rawInput}
             onChange={(e) => handlePaste(e.target.value)}
-            placeholder="https://www.myntra.com/…"
-            className="w-full rounded-lg border border-rule bg-cream py-4 pl-10 pr-4 text-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+            placeholder="Paste here — e.g. “Check out this product… https://www.myntra.com/…”"
+            className="w-full resize-y rounded-lg border border-rule bg-cream py-3 pl-10 pr-4 text-base leading-relaxed focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
           />
         </div>
+        {url && (
+          <p className="mt-1 text-xs text-muted truncate">
+            Link detected: <span className="text-ink">{url}</span>
+          </p>
+        )}
       </label>
 
       {pending && (
@@ -171,6 +177,17 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
               </div>
             </div>
           </div>
+
+          <input
+            type="url"
+            value={url}
+            onChange={(e) => {
+              setUrl(e.target.value);
+              setCanonicalUrl(""); // a manual edit wins over the resolved link
+            }}
+            placeholder="Product link"
+            className="w-full rounded-md border border-rule bg-cream px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+          />
 
           <input
             type="text"

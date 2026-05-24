@@ -19,7 +19,7 @@ const androidSteps = [
 const iosSteps = [
   { t: "Add to Home Screen", b: "Open shoplit.in in Safari → tap Share → “Add to Home Screen”. (iPhone doesn’t let apps share into shoplit — Apple limitation — so adding is by paste.)" },
   { t: "Copy the product link", b: "On the shopping app or site, tap Share → Copy (or copy the page address)." },
-  { t: "Paste into shoplit", b: "Open shoplit, go to Add a product, and paste. shoplit pulls the title from the link automatically." },
+  { t: "Paste into shoplit", b: "Open shoplit, tap the ＋ Add button, and paste the link. shoplit fills in what it can from the link — add or tweak the title." },
   { t: "Pick a cart & add", b: "Adjust the price/image if needed, choose the cart, and add." },
 ];
 

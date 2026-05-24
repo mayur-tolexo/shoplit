@@ -51,4 +51,27 @@ describe("parseShare", () => {
     expect(r.productUrl).toBe("");
     expect(r.title).toBe("just some text");
   });
+
+  it("trims trailing punctuation wrapped around the link", () => {
+    const r = parseShare({ text: "Buy now (https://www.flipkart.com/boat/p/itm123)." });
+    expect(r.productUrl).toBe("https://www.flipkart.com/boat/p/itm123");
+  });
+
+  it("upgrades a scheme-less url to https", () => {
+    const r = parseShare({ text: "Check this out www.nykaa.com/lakme/p/12345" });
+    expect(r.productUrl).toBe("https://www.nykaa.com/lakme/p/12345");
+  });
+
+  it("strips boilerplate even without a colon", () => {
+    const r = parseShare({
+      text: "Check out this product I found on Nykaa https://www.nykaa.com/maybelline-mascara/p/9999",
+    });
+    expect(r.productUrl).toBe("https://www.nykaa.com/maybelline-mascara/p/9999");
+    expect(r.title).toBe("maybelline mascara");
+  });
+
+  it("does not mistake a plain sentence for a url", () => {
+    const r = parseShare({ text: "loving it. so good." });
+    expect(r.productUrl).toBe("");
+  });
 });
