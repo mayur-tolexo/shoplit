@@ -56,6 +56,11 @@ func TestRetailerFromURL(t *testing.T) {
 	assert.Equal(t, "flipkart.com", ogfetch.RetailerFromURL("https://www.flipkart.com/x"))
 	assert.Equal(t, "ajio.com", ogfetch.RetailerFromURL("https://www.ajio.com/x"))
 	assert.Equal(t, "other", ogfetch.RetailerFromURL("https://other.com/x"))
+	// Amazon short links classify correctly even if the fetch fails before
+	// the redirect is followed.
+	assert.Equal(t, "amazon.in", ogfetch.RetailerFromURL("https://amzn.in/d/04rgYT8z"))
+	assert.Equal(t, "amazon.com", ogfetch.RetailerFromURL("https://amzn.to/abc"))
+	assert.Equal(t, "amazon.com", ogfetch.RetailerFromURL("https://a.co/d/abc"))
 }
 
 func TestFetch_CacheHitSkipsSecondNetwork(t *testing.T) {

@@ -28,12 +28,17 @@ const (
 )
 
 type Result struct {
-	OK        bool   `json:"ok"`
-	Title     string `json:"title,omitempty"`
-	ImageURL  string `json:"image_url,omitempty"`
-	PriceText string `json:"price_text,omitempty"`
-	Retailer  string `json:"retailer"`
-	Reason    string `json:"reason,omitempty"`
+	OK bool `json:"ok"`
+	// CanonicalURL is the final URL after following redirects. Short links
+	// (e.g. https://amzn.in/d/...) resolve to the real product URL here, so
+	// the caller can store the canonical URL for direct + affiliate-tagged
+	// redirects. Falls back to the requested URL when nothing redirected.
+	CanonicalURL string `json:"canonical_url,omitempty"`
+	Title        string `json:"title,omitempty"`
+	ImageURL     string `json:"image_url,omitempty"`
+	PriceText    string `json:"price_text,omitempty"`
+	Retailer     string `json:"retailer"`
+	Reason       string `json:"reason,omitempty"`
 }
 
 type Fetcher struct {
@@ -94,11 +99,19 @@ func (f *Fetcher) Fetch(ctx context.Context, rawURL string) (Result, error) {
 	if err != nil {
 		return notOK(rawURL, "parse"), nil
 	}
+	// resp.Request.URL is the URL after any redirects were followed — this is
+	// what we classify and canonicalize off of, so short links resolve to
+	// their real retailer instead of "other".
+	finalURL := rawURL
+	if resp.Request != nil && resp.Request.URL != nil {
+		finalURL = resp.Request.URL.String()
+	}
 	out := Result{
-		OK:       true,
-		Title:    pickMeta(doc, "og:title", "twitter:title"),
-		ImageURL: pickMeta(doc, "og:image", "twitter:image"),
-		Retailer: RetailerFromURL(rawURL),
+		OK:           true,
+		CanonicalURL: finalURL,
+		Title:        pickMeta(doc, "og:title", "twitter:title"),
+		ImageURL:     pickMeta(doc, "og:image", "twitter:image"),
+		Retailer:     RetailerFromURL(finalURL),
 	}
 	if out.Title == "" {
 		out.Title = strings.TrimSpace(doc.Find("title").First().Text())
@@ -174,6 +187,12 @@ func RetailerFromURL(raw string) string {
 	switch {
 	case strings.HasSuffix(host, "nykaa.com"):
 		return "nykaa.com"
+	// Amazon short links. We resolve redirects before classifying, so these
+	// only matter when the fetch fails — but then the retailer is still right.
+	case host == "amzn.in":
+		return "amazon.in"
+	case host == "amzn.to", host == "a.co":
+		return "amazon.com"
 	case strings.HasSuffix(host, "amazon.in"):
 		return "amazon.in"
 	case strings.HasSuffix(host, "amazon.com"):

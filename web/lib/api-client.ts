@@ -138,6 +138,7 @@ export async function reorderProducts(cartId: string, productIds: string[]): Pro
 export async function fetchOG(url: string): Promise<OGResult> {
   const r = await jsonFetch<{
     ok: boolean;
+    canonical_url?: string;
     title?: string;
     image_url?: string;
     price_text?: string;
@@ -146,6 +147,7 @@ export async function fetchOG(url: string): Promise<OGResult> {
   }>(`/api/v1/og-fetch?url=${encodeURIComponent(url)}`);
   return {
     ok: r.ok,
+    canonicalUrl: r.canonical_url,
     title: r.title,
     imageUrl: r.image_url,
     priceText: r.price_text,

@@ -26,6 +26,9 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
   const [priceText, setPriceText] = useState("");
   const [note, setNote] = useState("");
   const [retailer, setRetailer] = useState<Retailer>("other");
+  // Final URL after following redirects — short links (amzn.in/d/…) resolve
+  // here, and we store this so the redirect is direct + affiliate-tagged.
+  const [canonicalUrl, setCanonicalUrl] = useState("");
 
   const reset = () => {
     setUrl("");
@@ -36,6 +39,7 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
     setPriceText("");
     setNote("");
     setRetailer("other");
+    setCanonicalUrl("");
   };
 
   const handlePaste = (newUrl: string) => {
@@ -48,6 +52,7 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
       try {
         const og = await fetchOG(newUrl);
         setRetailer(og.retailer);
+        setCanonicalUrl(og.canonicalUrl ?? "");
         if (og.ok) {
           setTitle(og.title ?? "");
           setImageUrl(og.imageUrl ?? "");
@@ -71,7 +76,8 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
       imageUrl: imageUrl.trim(),
       priceText: priceText.trim(),
       retailer,
-      originalUrl: url,
+      // Prefer the resolved canonical URL so short links redirect directly.
+      originalUrl: canonicalUrl || url,
       note: note.trim(),
     });
     reset();

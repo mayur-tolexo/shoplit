@@ -25,6 +25,7 @@ export interface Product {
   retailer: Retailer;
   note?: string;           // creator's personal note about this product
   originalUrl: string;     // where the product lives
+  goSlug?: string;         // short-link slug; followers shop via /go/{goSlug}
 }
 
 export interface Cart {
@@ -46,6 +47,7 @@ export interface Cart {
 
 export interface OGResult {
   ok: boolean;
+  canonicalUrl?: string;   // final URL after following redirects (short links)
   title?: string;
   imageUrl?: string;
   priceText?: string;
