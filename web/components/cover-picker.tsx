@@ -12,16 +12,26 @@ interface CoverPickerProps {
   onChange: (url: string) => void;
 }
 
-// Curated, on-brand SVG covers shipped as static assets — no external image
-// host, no licensing concerns. Each is a distinct accent palette.
-const CURATED: { src: string; label: string }[] = [
-  { src: "/covers/terracotta.svg", label: "Terracotta" },
-  { src: "/covers/plum.svg", label: "Plum" },
-  { src: "/covers/sage.svg", label: "Sage" },
-  { src: "/covers/ocean.svg", label: "Ocean" },
-  { src: "/covers/rosewood.svg", label: "Rosewood" },
-  { src: "/covers/charcoal.svg", label: "Charcoal" },
+// Curated photographic covers from picsum.photos (deterministic per seed, so
+// each tile is a stable real photo). picsum is already allowed in
+// next.config remotePatterns.
+const COVER_SEEDS = [
+  "linen",
+  "atelier",
+  "coastline",
+  "studio-light",
+  "botanica",
+  "marble",
+  "golden-hour",
+  "minimal-desk",
+  "noir",
 ];
+const coverUrl = (seed: string) => `https://picsum.photos/seed/shoplit-${seed}/1600/1000`;
+const CURATED: { src: string; label: string }[] = COVER_SEEDS.map((seed) => ({
+  src: coverUrl(seed),
+  label: seed.replace(/-/g, " "),
+}));
+const CURATED_SET = new Set(CURATED.map((c) => c.src));
 
 export function CoverPicker({ value, accentHex, title, onChange }: CoverPickerProps) {
   const [history, setHistory] = useState<string[]>([]);
@@ -33,8 +43,7 @@ export function CoverPicker({ value, accentHex, title, onChange }: CoverPickerPr
     listMyCoverImages()
       .then((covers) => {
         if (!alive) return;
-        const curatedSet = new Set(CURATED.map((c) => c.src));
-        setHistory(covers.filter((c) => c && !curatedSet.has(c)));
+        setHistory(covers.filter((c) => c && !CURATED_SET.has(c)));
       })
       .catch(() => {});
     return () => {
@@ -61,7 +70,7 @@ export function CoverPicker({ value, accentHex, title, onChange }: CoverPickerPr
           {CURATED.map((c) => (
             <Tile key={c.src} selected={value === c.src} onClick={() => onChange(c.src)} label={c.label}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={c.src} alt={c.label} className="w-full h-full object-cover" />
+              <img src={c.src} alt={c.label} loading="lazy" className="w-full h-full object-cover" />
             </Tile>
           ))}
         </div>
@@ -111,7 +120,7 @@ export function CoverPicker({ value, accentHex, title, onChange }: CoverPickerPr
             <Plus size={14} /> Use
           </button>
         </div>
-        {value && !value.startsWith("/covers/") && (
+        {value && !CURATED_SET.has(value) && (
           <p className="mt-1 text-xs text-muted truncate">Current: {value}</p>
         )}
       </div>
