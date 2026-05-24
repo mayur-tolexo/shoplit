@@ -146,19 +146,25 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
             </div>
           </section>
 
-          {/* Title + Bio */}
-          <section className="space-y-3">
-            <label className="block">
-              <span className="block text-sm font-medium mb-2">Title</span>
+          {/* Title — styled as a heading; subtle hover indicates editability */}
+          <section className="space-y-4">
+            <div className="group/title relative">
+              <span className="sr-only">Cart title</span>
               <input
                 type="text"
                 value={cart.title}
                 onChange={(e) => patch({ title: e.target.value })}
-                className="w-full rounded-md border border-rule bg-cream px-3 py-3 font-serif text-2xl focus:outline-none focus:ring-2 focus:ring-accent"
+                placeholder="Untitled cart"
+                aria-label="Cart title"
+                className="w-full bg-transparent font-serif text-3xl sm:text-4xl tracking-tight px-0 py-2 border-0 border-b-2 border-transparent group-hover/title:border-rule focus:border-accent focus:outline-none transition-colors placeholder:text-muted/60"
               />
-            </label>
-            <label className="block">
-              <span className="block text-sm font-medium mb-2">Bio</span>
+              <p className="text-[11px] uppercase tracking-widest text-muted/70 opacity-0 group-hover/title:opacity-100 group-focus-within/title:opacity-100 transition-opacity mt-1">
+                Click to edit · changes save as you type
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2 text-muted">Bio</label>
               <textarea
                 value={cart.bio ?? ""}
                 onChange={(e) => patch({ bio: e.target.value })}
@@ -166,7 +172,7 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
                 placeholder="Tell your followers about this cart"
                 className="w-full rounded-md border border-rule bg-cream px-3 py-2 leading-relaxed focus:outline-none focus:ring-2 focus:ring-accent"
               />
-            </label>
+            </div>
           </section>
 
           {/* Accent color */}
