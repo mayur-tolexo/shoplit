@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { addSharedItem, createCart, uploadImage } from "@/lib/api-client";
 import { parseShare, type ParsedShare } from "@/lib/parse-share";
+import { richClipboardData, readRichClipboard } from "@/lib/clipboard";
 
 type CartOpt = { id: string; title: string; slug: string };
 const LAST_CART_KEY = "shoplit:lastCart";
@@ -41,12 +42,12 @@ export function AddForm({ carts, initial }: { carts: CartOpt[]; initial: ParsedS
     if (p.priceText) setPriceText(p.priceText);
   };
 
-  // Explicit clipboard read — the reliable path on iOS Safari, where a
-  // textarea's onChange often doesn't fire for a long-press "Paste".
+  // Explicit clipboard read — the reliable path on iOS Safari (reads the URL
+  // flavor, not just the product name).
   const pasteFromClipboard = async () => {
     try {
-      const t = await navigator.clipboard.readText();
-      if (t.trim()) applyPasted(t);
+      const raw = await readRichClipboard();
+      if (raw) applyPasted(raw);
       else toast.error("Clipboard is empty — copy the product link first.");
     } catch {
       toast.error("Couldn't read the clipboard — paste into the box instead.");
@@ -148,10 +149,11 @@ export function AddForm({ carts, initial }: { carts: CartOpt[]; initial: ParsedS
           onChange={(e) => applyPasted(e.target.value)}
           onPaste={(e) => {
             // Capture the paste directly — iOS Safari doesn't reliably fire
-            // onChange for a long-press paste. preventDefault so we set the
-            // value ourselves (no double insert).
+            // onChange for a long-press paste, and stores the link in a
+            // separate clipboard flavor from the product name. Read all
+            // flavors so the URL isn't dropped.
             e.preventDefault();
-            applyPasted(e.clipboardData.getData("text"));
+            applyPasted(richClipboardData(e.clipboardData));
           }}
           placeholder={'Paste the link or the whole “Check out this product…” text'}
           className={inputCls}

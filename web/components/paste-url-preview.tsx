@@ -5,6 +5,7 @@ import { Loader2, Link2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { fetchOG, uploadImage } from "@/lib/api-client";
 import { parseShare } from "@/lib/parse-share";
+import { richClipboardData } from "@/lib/clipboard";
 import type { Product, Retailer } from "@/lib/types";
 import { RetailerIcon, retailerLabel } from "./retailer-icon";
 
@@ -125,9 +126,10 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
             onChange={(e) => handlePaste(e.target.value)}
             onPaste={(e) => {
               // iOS Safari doesn't reliably fire onChange for a long-press
-              // paste — capture the clipboard data directly.
+              // paste, and stores the link in a separate flavor from the
+              // product name — read all flavors so the URL isn't dropped.
               e.preventDefault();
-              handlePaste(e.clipboardData.getData("text"));
+              handlePaste(richClipboardData(e.clipboardData));
             }}
             placeholder="Paste here — e.g. “Check out this product… https://www.myntra.com/…”"
             className="w-full resize-y rounded-lg border border-rule bg-cream py-3 pl-10 pr-4 text-base leading-relaxed focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
