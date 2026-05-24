@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { toast } from "sonner";
-import { getCurrentUser, logout } from "@/lib/api-client";
+import { logout } from "@/lib/api-client";
 import type { User } from "@/lib/types";
 import {
   DropdownMenu,
@@ -15,19 +14,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function NavBar({ variant = "marketing" }: { variant?: "marketing" | "app" }) {
-  const [user, setUser] = useState<User | null>(null);
-  const router = useRouter();
+interface NavBarProps {
+  variant?: "marketing" | "app";
+  /** User passed down from the server-rendered layout. Required when variant="app". */
+  user?: User | null;
+}
 
-  useEffect(() => {
-    if (variant !== "app") return;
-    getCurrentUser()
-      .then(setUser)
-      .catch(() => {
-        // Not signed in — kick to /login
-        router.push("/login");
-      });
-  }, [variant, router]);
+// NavBar no longer fetches the user itself. The dashboard layout (server
+// component) gets the user via `getCurrentUser({ cookie })` and passes it
+// in. This avoids a duplicate client-side fetch AND prevents the previous
+// bug where a transient client fetch failure would `router.push("/login")`
+// and ping-pong the user between /dashboard ↔ /login.
+export function NavBar({ variant = "marketing", user }: NavBarProps) {
+  const router = useRouter();
 
   const handleLogout = async () => {
     try {
