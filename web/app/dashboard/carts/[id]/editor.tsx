@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUp, ArrowDown, ExternalLink, GripVertical, Share2, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowUp, ArrowDown, Check, ExternalLink, GripVertical, Pencil, Share2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   DndContext,
@@ -31,15 +32,28 @@ import { ShareSheet } from "@/components/share-sheet";
 import { CartCover } from "@/components/cart-cover";
 import { CoverPicker } from "@/components/cover-picker";
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   addProductToCart,
+  deleteCart,
   removeProductFromCart,
   reorderProducts,
   updateCart,
+  updateProductInCart,
 } from "@/lib/api-client";
 import type { Cart, Product } from "@/lib/types";
 
 export function CartEditor({ initialCart }: { initialCart: Cart }) {
+  const router = useRouter();
   const [cart, setCart] = useState<Cart>(initialCart);
+  const [deleting, setDeleting] = useState(false);
   const [, startTransition] = useTransition();
 
   const patch = async (changes: Partial<Cart>) => {
@@ -70,6 +84,31 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
       setCart(updated);
     } catch {
       toast.error("Couldn't remove product.");
+    }
+  };
+
+  const editProduct = async (
+    productId: string,
+    patch: Pick<Product, "title" | "priceText" | "imageUrl" | "note">,
+  ) => {
+    try {
+      const updated = await updateProductInCart(cart.id, productId, patch);
+      setCart(updated);
+      toast.success("Product updated");
+    } catch {
+      toast.error("Couldn't save the product. Please try again.");
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteCart(cart.id);
+      toast.success("Cart deleted");
+      router.push("/dashboard");
+    } catch {
+      setDeleting(false);
+      toast.error("Couldn't delete the cart. Please try again.");
     }
   };
 
@@ -213,6 +252,7 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
                       onMoveUp={() => move(p.id, -1)}
                       onMoveDown={() => move(p.id, +1)}
                       onRemove={() => removeProduct(p.id)}
+                      onSave={(patch) => editProduct(p.id, patch)}
                     />
                   ))}
                 </ul>
@@ -230,6 +270,47 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
               View live <ExternalLink size={14} />
             </Link>
           </div>
+
+          {/* Danger zone */}
+          <section className="border-t border-rule pt-6 mt-8">
+            <h2 className="text-sm font-medium mb-1">Delete this cart</h2>
+            <p className="text-sm text-muted mb-3">
+              Its share link will stop working and it&apos;ll disappear from your dashboard. This can&apos;t be undone.
+            </p>
+            <Dialog>
+              <DialogTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-full border border-red-300 text-red-700 px-4 py-2 text-sm font-medium hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 size={14} /> Delete cart
+                </button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete “{cart.title}”?</DialogTitle>
+                  <DialogDescription>
+                    The link <span className="font-mono">/c/{cart.slug}</span> will stop working and the cart leaves your dashboard. This can&apos;t be undone.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex justify-end gap-2 mt-4">
+                  <DialogClose asChild>
+                    <button type="button" className="rounded-full px-4 py-2 text-sm text-muted hover:text-ink">
+                      Cancel
+                    </button>
+                  </DialogClose>
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="inline-flex items-center gap-2 rounded-full bg-red-600 text-white px-4 py-2 text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+                  >
+                    <Trash2 size={14} /> {deleting ? "Deleting…" : "Delete cart"}
+                  </button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </section>
         </div>
 
         {/* RIGHT — PREVIEW */}
@@ -276,6 +357,7 @@ function SortableProductRow({
   onMoveUp,
   onMoveDown,
   onRemove,
+  onSave,
 }: {
   product: Product;
   isFirst: boolean;
@@ -283,13 +365,101 @@ function SortableProductRow({
   onMoveUp: () => void;
   onMoveDown: () => void;
   onRemove: () => void;
+  onSave: (patch: Pick<Product, "title" | "priceText" | "imageUrl" | "note">) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: product.id });
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(product.title);
+  const [priceText, setPriceText] = useState(product.priceText);
+  const [imageUrl, setImageUrl] = useState(product.imageUrl);
+  const [note, setNote] = useState(product.note ?? "");
+
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  const startEdit = () => {
+    setTitle(product.title);
+    setPriceText(product.priceText);
+    setImageUrl(product.imageUrl);
+    setNote(product.note ?? "");
+    setEditing(true);
+  };
+
+  const save = () => {
+    if (!title.trim()) return;
+    onSave({ title: title.trim(), priceText: priceText.trim(), imageUrl: imageUrl.trim(), note: note.trim() });
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <li ref={setNodeRef} style={style} className="p-3 rounded-lg border border-accent bg-cream space-y-2">
+        <div className="flex gap-3">
+          <div className="relative w-12 h-12 rounded-md overflow-hidden bg-paper shrink-0 border border-rule">
+            {imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full grid place-items-center text-[9px] text-muted">no image</div>
+            )}
+          </div>
+          <div className="flex-1 space-y-2 min-w-0">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Product title (required)"
+              className="w-full rounded-md border border-rule bg-cream px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={priceText}
+                onChange={(e) => setPriceText(e.target.value)}
+                placeholder="₹ price"
+                className="w-24 rounded-md border border-rule bg-cream px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              <input
+                type="url"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="Image URL"
+                className="flex-1 min-w-0 rounded-md border border-rule bg-cream px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+            </div>
+            <input
+              type="text"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Your note (optional)"
+              className="w-full rounded-md border border-rule bg-cream px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm text-muted hover:text-ink"
+          >
+            <X size={14} /> Cancel
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={!title.trim()}
+            className="inline-flex items-center gap-1 rounded-full bg-ink text-cream px-3 py-1.5 text-sm font-medium hover:opacity-90 disabled:opacity-40"
+          >
+            <Check size={14} /> Save
+          </button>
+        </div>
+      </li>
+    );
+  }
+
   return (
     <li
       ref={setNodeRef}
@@ -309,7 +479,7 @@ function SortableProductRow({
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{product.title}</p>
-        <p className="text-xs text-muted">{product.priceText}</p>
+        <p className="text-xs text-muted">{product.priceText || "No price"}</p>
       </div>
       <div className="flex items-center gap-1">
         <button
@@ -327,6 +497,13 @@ function SortableProductRow({
           className="p-1 rounded hover:bg-paper disabled:opacity-30"
         >
           <ArrowDown size={14} />
+        </button>
+        <button
+          onClick={startEdit}
+          aria-label="Edit product"
+          className="p-1 rounded hover:bg-paper text-muted hover:text-ink"
+        >
+          <Pencil size={14} />
         </button>
         <button
           onClick={onRemove}

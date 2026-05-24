@@ -228,6 +228,46 @@ func (s *Service) RemoveProduct(ctx context.Context, userID, cartID, itemID int6
 	return s.q.RemoveCartItem(ctx, sqlcgen.RemoveCartItemParams{ID: itemID, CartID: cartID})
 }
 
+// UpdateProductInput holds the editable display fields of a cart item.
+type UpdateProductInput struct {
+	Title     string
+	Note      string
+	ImageURL  string
+	PriceText string
+}
+
+// UpdateProduct edits a product's display fields after verifying ownership.
+func (s *Service) UpdateProduct(ctx context.Context, userID, cartID, itemID int64, in UpdateProductInput) (sqlcgen.CartItem, error) {
+	cart, err := s.q.GetCartByID(ctx, cartID)
+	if err != nil {
+		return sqlcgen.CartItem{}, err
+	}
+	if cart.UserID != userID {
+		return sqlcgen.CartItem{}, ErrForbidden
+	}
+	return s.q.UpdateCartItem(ctx, sqlcgen.UpdateCartItemParams{
+		ID:          itemID,
+		CartID:      cartID,
+		Title:       in.Title,
+		Description: pgtype.Text{String: in.Note, Valid: in.Note != ""},
+		ImageUrl:    pgtype.Text{String: in.ImageURL, Valid: in.ImageURL != ""},
+		PriceText:   pgtype.Text{String: in.PriceText, Valid: in.PriceText != ""},
+	})
+}
+
+// DeleteCart soft-deletes a cart (sets archived_at) after verifying ownership.
+// Archived carts drop out of the dashboard list and stop resolving publicly.
+func (s *Service) DeleteCart(ctx context.Context, userID, cartID int64) error {
+	cart, err := s.q.GetCartByID(ctx, cartID)
+	if err != nil {
+		return err
+	}
+	if cart.UserID != userID {
+		return ErrForbidden
+	}
+	return s.q.ArchiveCart(ctx, cartID)
+}
+
 // ReorderProducts sets the positions of the given item IDs in order.
 func (s *Service) ReorderProducts(ctx context.Context, userID, cartID int64, itemIDs []int64) error {
 	cart, err := s.q.GetCartByID(ctx, cartID)
@@ -236,6 +276,18 @@ func (s *Service) ReorderProducts(ctx context.Context, userID, cartID int64, ite
 	}
 	if cart.UserID != userID {
 		return ErrForbidden
+	}
+	// cart_items has UNIQUE(cart_id, position), checked per row. Assigning final
+	// positions directly collides mid-reorder (e.g. setting A→1 while B still
+	// holds 1). Two-phase: first park every item at a distinct negative
+	// position (can't collide with the 0..n-1 range or each other), then set
+	// the final positions onto the now-cleared range.
+	for i, id := range itemIDs {
+		if err := s.q.ReorderCartItem(ctx, sqlcgen.ReorderCartItemParams{
+			ID: id, CartID: cartID, Position: int32(-(i + 1)),
+		}); err != nil {
+			return err
+		}
 	}
 	for i, id := range itemIDs {
 		if err := s.q.ReorderCartItem(ctx, sqlcgen.ReorderCartItemParams{

@@ -84,6 +84,17 @@ JOIN links l ON ci.link_id = l.id
 WHERE ci.cart_id = $1
 ORDER BY ci.position ASC;
 
+-- name: UpdateCartItem :one
+-- Edit a product's display fields (the URL/retailer live on the link and stay
+-- immutable — changing those is effectively a different product).
+UPDATE cart_items SET
+  title       = $3,
+  description = $4,
+  image_url   = $5,
+  price_text  = $6
+WHERE id = $1 AND cart_id = $2
+RETURNING *;
+
 -- name: RemoveCartItem :exec
 DELETE FROM cart_items WHERE id = $1 AND cart_id = $2;
 

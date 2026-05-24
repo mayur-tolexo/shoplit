@@ -20,9 +20,11 @@ func RegisterRoutes(r chi.Router, svc *Service, fetcher *ogfetch.Fetcher) {
 	r.Post("/carts", createCart(svc))
 	r.Get("/carts/{id}", getCart(svc))
 	r.Patch("/carts/{id}", updateCart(svc))
+	r.Delete("/carts/{id}", deleteCart(svc))
 	r.Post("/carts/{id}/items", addItem(svc, fetcher))
-	r.Delete("/carts/{id}/items/{itemID}", removeItem(svc))
 	r.Patch("/carts/{id}/items/reorder", reorderItems(svc))
+	r.Patch("/carts/{id}/items/{itemID}", updateItem(svc))
+	r.Delete("/carts/{id}/items/{itemID}", removeItem(svc))
 	r.Get("/og-fetch", ogFetchHandler(fetcher))
 }
 
@@ -214,6 +216,56 @@ func addItem(svc *Service, fetcher *ogfetch.Fetcher) http.HandlerFunc {
 			"title":    item.Title,
 			"position": item.Position,
 		})
+	}
+}
+
+func updateItem(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uid, _ := auth.UserIDFromContext(r.Context())
+		cartID, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		itemID, _ := strconv.ParseInt(chi.URLParam(r, "itemID"), 10, 64)
+		var body struct {
+			Title     string `json:"title"`
+			PriceText string `json:"price_text"`
+			ImageURL  string `json:"image_url"`
+			Note      string `json:"note"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Title == "" {
+			http.Error(w, "title required", http.StatusBadRequest)
+			return
+		}
+		_, err := svc.UpdateProduct(r.Context(), uid, cartID, itemID, UpdateProductInput{
+			Title:     body.Title,
+			PriceText: body.PriceText,
+			ImageURL:  body.ImageURL,
+			Note:      body.Note,
+		})
+		if errors.Is(err, ErrForbidden) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func deleteCart(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uid, _ := auth.UserIDFromContext(r.Context())
+		cartID, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		err := svc.DeleteCart(r.Context(), uid, cartID)
+		if errors.Is(err, ErrForbidden) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 

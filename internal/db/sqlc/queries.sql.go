@@ -520,6 +520,52 @@ func (q *Queries) UpdateCart(ctx context.Context, arg UpdateCartParams) (Cart, e
 	return i, err
 }
 
+const updateCartItem = `-- name: UpdateCartItem :one
+UPDATE cart_items SET
+  title       = $3,
+  description = $4,
+  image_url   = $5,
+  price_text  = $6
+WHERE id = $1 AND cart_id = $2
+RETURNING id, cart_id, position, link_id, title, description, image_url, price_text, retailer, created_at
+`
+
+type UpdateCartItemParams struct {
+	ID          int64       `json:"id"`
+	CartID      int64       `json:"cart_id"`
+	Title       string      `json:"title"`
+	Description pgtype.Text `json:"description"`
+	ImageUrl    pgtype.Text `json:"image_url"`
+	PriceText   pgtype.Text `json:"price_text"`
+}
+
+// Edit a product's display fields (the URL/retailer live on the link and stay
+// immutable — changing those is effectively a different product).
+func (q *Queries) UpdateCartItem(ctx context.Context, arg UpdateCartItemParams) (CartItem, error) {
+	row := q.db.QueryRow(ctx, updateCartItem,
+		arg.ID,
+		arg.CartID,
+		arg.Title,
+		arg.Description,
+		arg.ImageUrl,
+		arg.PriceText,
+	)
+	var i CartItem
+	err := row.Scan(
+		&i.ID,
+		&i.CartID,
+		&i.Position,
+		&i.LinkID,
+		&i.Title,
+		&i.Description,
+		&i.ImageUrl,
+		&i.PriceText,
+		&i.Retailer,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const upsertGoogleUser = `-- name: UpsertGoogleUser :one
 INSERT INTO users (google_sub, email, display_name, avatar_url, handle)
 VALUES ($1, $2, $3, $4, $5)

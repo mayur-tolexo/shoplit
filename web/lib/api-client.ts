@@ -123,11 +123,34 @@ export async function addProductToCart(cartId: string, draft: Omit<Product, "id"
   return cart;
 }
 
+export async function updateProductInCart(
+  cartId: string,
+  productId: string,
+  patch: Pick<Product, "title" | "priceText" | "imageUrl" | "note">,
+): Promise<Cart> {
+  await jsonFetch(`/api/v1/carts/${cartId}/items/${productId}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      title: patch.title,
+      price_text: patch.priceText,
+      image_url: patch.imageUrl,
+      note: patch.note ?? "",
+    }),
+  });
+  const cart = await getCartById(cartId);
+  if (!cart) throw new ApiError(404, `cart ${cartId} not found after item update`);
+  return cart;
+}
+
 export async function removeProductFromCart(cartId: string, productId: string): Promise<Cart> {
   await jsonFetch(`/api/v1/carts/${cartId}/items/${productId}`, { method: "DELETE" });
   const cart = await getCartById(cartId);
   if (!cart) throw new ApiError(404, `cart ${cartId} not found`);
   return cart;
+}
+
+export async function deleteCart(cartId: string): Promise<void> {
+  await jsonFetch(`/api/v1/carts/${cartId}`, { method: "DELETE" });
 }
 
 export async function reorderProducts(cartId: string, productIds: string[]): Promise<Cart> {

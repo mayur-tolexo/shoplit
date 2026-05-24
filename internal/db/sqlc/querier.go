@@ -38,6 +38,9 @@ type Querier interface {
 	RemoveCartItem(ctx context.Context, arg RemoveCartItemParams) error
 	ReorderCartItem(ctx context.Context, arg ReorderCartItemParams) error
 	UpdateCart(ctx context.Context, arg UpdateCartParams) (Cart, error)
+	// Edit a product's display fields (the URL/retailer live on the link and stay
+	// immutable — changing those is effectively a different product).
+	UpdateCartItem(ctx context.Context, arg UpdateCartItemParams) (CartItem, error)
 	UpsertGoogleUser(ctx context.Context, arg UpsertGoogleUserParams) (User, error)
 }
 
