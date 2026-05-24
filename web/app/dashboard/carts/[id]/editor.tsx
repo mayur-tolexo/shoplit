@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -54,19 +54,41 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
   const router = useRouter();
   const [cart, setCart] = useState<Cart>(initialCart);
   const [deleting, setDeleting] = useState(false);
-  const [, startTransition] = useTransition();
 
-  const patch = async (changes: Partial<Cart>) => {
-    setCart((c) => ({ ...c, ...changes }));
-    startTransition(async () => {
-      try {
-        const updated = await updateCart(cart.id, changes);
-        setCart(updated);
-      } catch {
-        toast.error("Couldn't save changes. Please try again.");
-      }
-    });
+  // Debounced save: local state is the source of truth while editing. We
+  // accumulate changed fields and PATCH them ~600ms after the last keystroke,
+  // and we DON'T overwrite local state with the server echo — otherwise an
+  // in-flight save for an earlier keystroke lands and reverts what you're
+  // typing (text "getting replaced").
+  const pending = useRef<Partial<Cart>>({});
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushSave = async () => {
+    const changes = pending.current;
+    pending.current = {};
+    if (Object.keys(changes).length === 0) return;
+    try {
+      await updateCart(initialCart.id, changes);
+    } catch {
+      toast.error("Couldn't save changes. Please try again.");
+    }
   };
+
+  const patch = (changes: Partial<Cart>) => {
+    setCart((c) => ({ ...c, ...changes }));
+    pending.current = { ...pending.current, ...changes };
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(flushSave, 600);
+  };
+
+  // Flush any pending edit when leaving the editor.
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      void flushSave();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const addProduct = async (draft: Omit<Product, "id">) => {
     try {
