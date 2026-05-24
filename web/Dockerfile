@@ -19,6 +19,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # prod, so this is the public site URL.
 ARG NEXT_PUBLIC_API_BASE_URL
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+# Browser-extension ID — when set, the connect page hands the token to the
+# extension automatically (no copy-paste). Empty is fine (falls back to paste).
+ARG NEXT_PUBLIC_EXTENSION_ID
+ENV NEXT_PUBLIC_EXTENSION_ID=$NEXT_PUBLIC_EXTENSION_ID
 RUN pnpm build
 
 FROM node:22-alpine AS run

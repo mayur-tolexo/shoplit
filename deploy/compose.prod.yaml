@@ -104,6 +104,8 @@ services:
       args:
         # Same-origin in prod, so the public site URL doubles as the API base.
         NEXT_PUBLIC_API_BASE_URL: ${PUBLIC_URL}
+        # Browser-extension ID for the automatic connect handoff (optional).
+        NEXT_PUBLIC_EXTENSION_ID: ${EXTENSION_ID:-}
     image: shoplit-web:latest
     restart: unless-stopped
     depends_on:
