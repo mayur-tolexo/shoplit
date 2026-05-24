@@ -28,14 +28,29 @@ export function AddForm({ carts, initial }: { carts: CartOpt[]; initial: ParsedS
   const [busy, setBusy] = useState(false);
   const [cartBusy, setCartBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [pasteText, setPasteText] = useState("");
   const [added, setAdded] = useState<CartOpt | null>(null);
   const [newCartTitle, setNewCartTitle] = useState("");
 
-  const onPaste = (raw: string) => {
+  // Apply pasted/typed text → extract link, title, price into the form.
+  const applyPasted = (raw: string) => {
+    setPasteText(raw);
     const p = parseShare({ text: raw, url: raw });
     if (p.productUrl) setOriginalUrl(p.productUrl);
     if (p.title) setTitle(p.title);
     if (p.priceText) setPriceText(p.priceText);
+  };
+
+  // Explicit clipboard read — the reliable path on iOS Safari, where a
+  // textarea's onChange often doesn't fire for a long-press "Paste".
+  const pasteFromClipboard = async () => {
+    try {
+      const t = await navigator.clipboard.readText();
+      if (t.trim()) applyPasted(t);
+      else toast.error("Clipboard is empty — copy the product link first.");
+    } catch {
+      toast.error("Couldn't read the clipboard — paste into the box instead.");
+    }
   };
 
   const onPickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,17 +140,30 @@ export function AddForm({ carts, initial }: { carts: CartOpt[]; initial: ParsedS
 
   return (
     <div className="space-y-4">
-      {!originalUrl && (
-        <label className="block">
-          <span className="block text-sm font-medium mb-1">Paste a product link</span>
-          <textarea
-            rows={2}
-            onChange={(e) => onPaste(e.target.value)}
-            placeholder={'Paste the link or the whole “Check out this product…” text'}
-            className={inputCls}
-          />
-        </label>
-      )}
+      <div className="block">
+        <span className="block text-sm font-medium mb-1">Paste a product link</span>
+        <textarea
+          rows={2}
+          value={pasteText}
+          onChange={(e) => applyPasted(e.target.value)}
+          onPaste={(e) => {
+            // Capture the paste directly — iOS Safari doesn't reliably fire
+            // onChange for a long-press paste. preventDefault so we set the
+            // value ourselves (no double insert).
+            e.preventDefault();
+            applyPasted(e.clipboardData.getData("text"));
+          }}
+          placeholder={'Paste the link or the whole “Check out this product…” text'}
+          className={inputCls}
+        />
+        <button
+          type="button"
+          onClick={pasteFromClipboard}
+          className="mt-2 inline-flex items-center gap-2 rounded-full border border-ink px-4 py-2 text-sm font-medium hover:bg-paper"
+        >
+          📋 Paste from clipboard
+        </button>
+      </div>
 
       <label className="block">
         <span className="block text-sm font-medium mb-1">Cart</span>

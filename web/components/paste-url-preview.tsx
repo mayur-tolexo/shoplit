@@ -123,6 +123,12 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
             rows={2}
             value={rawInput}
             onChange={(e) => handlePaste(e.target.value)}
+            onPaste={(e) => {
+              // iOS Safari doesn't reliably fire onChange for a long-press
+              // paste — capture the clipboard data directly.
+              e.preventDefault();
+              handlePaste(e.clipboardData.getData("text"));
+            }}
             placeholder="Paste here — e.g. “Check out this product… https://www.myntra.com/…”"
             className="w-full resize-y rounded-lg border border-rule bg-cream py-3 pl-10 pr-4 text-base leading-relaxed focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
           />
