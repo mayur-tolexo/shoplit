@@ -43,31 +43,41 @@ func TestLoad_AppliesDefaults(t *testing.T) {
 }
 
 func TestLoad_RequiresMandatory(t *testing.T) {
+	// Only DBDSN and RedisURL are hard-required. SessionSecret auto-generates
+	// when unset; GoogleOAuth* are optional (handler returns 503 instead).
 	t.Run("missing DBDSN", func(t *testing.T) {
 		mustUnset(t, "SHOPLIT_DB_DSN")
 		t.Setenv("SHOPLIT_REDIS_URL", "redis://x")
-		t.Setenv("SHOPLIT_SESSION_SECRET", "s")
-		t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "c")
-		t.Setenv("GOOGLE_OAUTH_CLIENT_SECRET", "s")
 		_, err := Load()
 		require.Error(t, err)
 	})
-	t.Run("missing SessionSecret", func(t *testing.T) {
+	t.Run("missing RedisURL", func(t *testing.T) {
 		t.Setenv("SHOPLIT_DB_DSN", "postgres://x")
-		t.Setenv("SHOPLIT_REDIS_URL", "redis://x")
-		mustUnset(t, "SHOPLIT_SESSION_SECRET")
-		t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "c")
-		t.Setenv("GOOGLE_OAUTH_CLIENT_SECRET", "s")
+		mustUnset(t, "SHOPLIT_REDIS_URL")
 		_, err := Load()
 		require.Error(t, err)
 	})
-	t.Run("missing GoogleOAuthClientID", func(t *testing.T) {
-		t.Setenv("SHOPLIT_DB_DSN", "postgres://x")
-		t.Setenv("SHOPLIT_REDIS_URL", "redis://x")
-		t.Setenv("SHOPLIT_SESSION_SECRET", "s")
-		mustUnset(t, "GOOGLE_OAUTH_CLIENT_ID")
-		t.Setenv("GOOGLE_OAUTH_CLIENT_SECRET", "s")
-		_, err := Load()
-		require.Error(t, err)
-	})
+}
+
+func TestLoad_AutoGeneratesSessionSecret(t *testing.T) {
+	t.Setenv("SHOPLIT_DB_DSN", "postgres://x")
+	t.Setenv("SHOPLIT_REDIS_URL", "redis://x")
+	mustUnset(t, "SHOPLIT_SESSION_SECRET")
+	mustUnset(t, "GOOGLE_OAUTH_CLIENT_ID")
+	mustUnset(t, "GOOGLE_OAUTH_CLIENT_SECRET")
+	cfg, err := Load()
+	require.NoError(t, err)
+	assert.NotEmpty(t, cfg.SessionSecret)
+	assert.Len(t, cfg.SessionSecret, 64) // 32 bytes hex-encoded
+	assert.False(t, cfg.GoogleOAuthConfigured())
+}
+
+func TestLoad_DetectsGoogleOAuthConfigured(t *testing.T) {
+	t.Setenv("SHOPLIT_DB_DSN", "postgres://x")
+	t.Setenv("SHOPLIT_REDIS_URL", "redis://x")
+	t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "c")
+	t.Setenv("GOOGLE_OAUTH_CLIENT_SECRET", "s")
+	cfg, err := Load()
+	require.NoError(t, err)
+	assert.True(t, cfg.GoogleOAuthConfigured())
 }

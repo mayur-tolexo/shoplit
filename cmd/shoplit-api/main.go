@@ -63,7 +63,6 @@ func run() error {
 	defer rc.Close()
 
 	sm := auth.NewSessionManager(cfg.SessionSecret)
-	oauthCfg := auth.GoogleConfig(cfg.GoogleOAuthClientID, cfg.GoogleOAuthClientSecret, cfg.GoogleOAuthRedirectURL)
 	upsert := auth.NewUserUpsertFn(q)
 	fetcher := ogfetch.New(rc)
 	svc := carts.NewService(q)
@@ -72,10 +71,21 @@ func run() error {
 	r.Use(middleware.RequestID, middleware.Recoverer)
 	r.Method(http.MethodGet, "/health", httpx.Health(pool, rc, cfg.Env))
 
-	// Auth endpoints (no middleware — these establish the session)
-	r.Get("/api/v1/auth/google", auth.HandleGoogleStart(oauthCfg, sm).ServeHTTP)
-	r.Get("/api/v1/auth/google/callback",
-		auth.HandleGoogleCallback(oauthCfg, sm, upsert, cfg.FrontendURL, auth.GoogleUserInfoURL).ServeHTTP)
+	// Auth endpoints (no middleware — these establish the session). Google
+	// OAuth routes return 503 with a helpful message until GCP creds are
+	// configured (see docs/superpowers/runbooks/google-oauth-setup.md).
+	if cfg.GoogleOAuthConfigured() {
+		oauthCfg := auth.GoogleConfig(cfg.GoogleOAuthClientID, cfg.GoogleOAuthClientSecret, cfg.GoogleOAuthRedirectURL)
+		r.Get("/api/v1/auth/google", auth.HandleGoogleStart(oauthCfg, sm).ServeHTTP)
+		r.Get("/api/v1/auth/google/callback",
+			auth.HandleGoogleCallback(oauthCfg, sm, upsert, cfg.FrontendURL, auth.GoogleUserInfoURL).ServeHTTP)
+	} else {
+		notConfigured := func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "Google sign-in not configured on this server. See docs/superpowers/runbooks/google-oauth-setup.md.", http.StatusServiceUnavailable)
+		}
+		r.Get("/api/v1/auth/google", notConfigured)
+		r.Get("/api/v1/auth/google/callback", notConfigured)
+	}
 	r.Post("/api/v1/auth/logout", auth.HandleLogout(sm).ServeHTTP)
 
 	// Public, unauthenticated read endpoints

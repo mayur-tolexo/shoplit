@@ -1,7 +1,10 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
+	"log/slog"
 
 	"github.com/caarlos0/env/v11"
 )
@@ -18,13 +21,18 @@ type Config struct {
 	RedirectAddr string `env:"SHOPLIT_REDIRECT_ADDR" envDefault:":8081"`
 
 	// Session signing secret. Random 32+ bytes (hex/base64) — generate with
-	// `openssl rand -hex 32`. Used to HMAC-sign session and OAuth-state cookies.
-	SessionSecret string `env:"SHOPLIT_SESSION_SECRET,required"`
+	// `openssl rand -hex 32`. If unset in dev, we auto-generate a per-process
+	// random one so the binary boots; sessions then invalidate on every
+	// restart. Production MUST set this explicitly.
+	SessionSecret string `env:"SHOPLIT_SESSION_SECRET"`
 
 	// Google OAuth 2.0 — create a client in https://console.cloud.google.com/.
 	// See docs/superpowers/runbooks/google-oauth-setup.md.
-	GoogleOAuthClientID     string `env:"GOOGLE_OAUTH_CLIENT_ID,required"`
-	GoogleOAuthClientSecret string `env:"GOOGLE_OAUTH_CLIENT_SECRET,required"`
+	// Optional: if either is empty, the Google sign-in route returns 503 with
+	// a friendly message. The rest of the app still boots so you can develop
+	// other features without GCP setup.
+	GoogleOAuthClientID     string `env:"GOOGLE_OAUTH_CLIENT_ID"`
+	GoogleOAuthClientSecret string `env:"GOOGLE_OAUTH_CLIENT_SECRET"`
 	GoogleOAuthRedirectURL  string `env:"GOOGLE_OAUTH_REDIRECT_URL" envDefault:"http://localhost:8080/api/v1/auth/google/callback"`
 
 	// After successful sign-in, the OAuth callback redirects the browser to
@@ -32,10 +40,37 @@ type Config struct {
 	FrontendURL string `env:"SHOPLIT_FRONTEND_URL" envDefault:"http://localhost:3000"`
 }
 
+// GoogleOAuthConfigured returns true only when both client id and secret are set.
+// Handlers should check this before initiating the OAuth dance.
+func (c *Config) GoogleOAuthConfigured() bool {
+	return c.GoogleOAuthClientID != "" && c.GoogleOAuthClientSecret != ""
+}
+
 func Load() (*Config, error) {
 	var c Config
 	if err := env.Parse(&c); err != nil {
 		return nil, fmt.Errorf("config: %w", err)
 	}
+	if c.SessionSecret == "" {
+		// Dev fallback so the binary boots without manual setup. Logs a
+		// warning so production deploys can't silently regress.
+		s, err := generateDevSecret()
+		if err != nil {
+			return nil, fmt.Errorf("config: auto-generate session secret: %w", err)
+		}
+		c.SessionSecret = s
+		slog.Warn("SHOPLIT_SESSION_SECRET not set — generated a per-process secret. Sessions will invalidate on restart. Set the env var explicitly (e.g. `openssl rand -hex 32`) before deploying.")
+	}
+	if !c.GoogleOAuthConfigured() {
+		slog.Warn("Google OAuth not configured (GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET missing) — /api/v1/auth/google will return 503 until you complete docs/superpowers/runbooks/google-oauth-setup.md.")
+	}
 	return &c, nil
+}
+
+func generateDevSecret() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
 }
