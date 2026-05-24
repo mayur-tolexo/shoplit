@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { logout } from "@/lib/api-client";
 
 // Sticky bottom nav for /dashboard* on mobile only. Hidden at sm+ (the top
-// NavBar covers desktop). 3 actions: home / new cart (prominent) / sign out.
+// NavBar covers desktop). 3 actions: home / add a product (prominent) / sign out.
 export function MobileBottomNav() {
   const pathname = usePathname();
   const router = useRouter();
@@ -32,7 +32,7 @@ export function MobileBottomNav() {
     >
       <div className="flex items-stretch justify-around h-16 px-2">
         <NavItem href="/dashboard" label="Carts" icon={<Home size={20} />} active={isHome} />
-        <CenterAction href="/dashboard/carts/new" />
+        <CenterAction href="/add" />
         <NavButton label="Sign out" icon={<LogOut size={20} />} onClick={handleLogout} />
       </div>
     </nav>
@@ -88,7 +88,7 @@ function CenterAction({ href }: { href: string }) {
   return (
     <Link
       href={href}
-      aria-label="New cart"
+      aria-label="Add a product"
       className="-translate-y-3 flex items-center justify-center w-14 h-14 rounded-full bg-ink text-cream shadow-lg hover:opacity-90 transition-opacity"
     >
       <Plus size={22} />
