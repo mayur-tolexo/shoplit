@@ -61,6 +61,11 @@ export async function getCurrentUser(opts?: AuthOpts): Promise<User> {
   return jsonFetch<User>("/api/v1/me", opts);
 }
 
+export async function listMyCoverImages(opts?: AuthOpts): Promise<string[]> {
+  const r = await jsonFetch<{ covers: string[] }>("/api/v1/cover-images", opts);
+  return r.covers ?? [];
+}
+
 export async function listMyCarts(opts?: AuthOpts): Promise<Cart[]> {
   return jsonFetch<Cart[]>("/api/v1/carts", opts);
 }

@@ -399,6 +399,44 @@ func (q *Queries) ListCartsByUser(ctx context.Context, userID int64) ([]Cart, er
 	return items, nil
 }
 
+const listUserCoverImages = `-- name: ListUserCoverImages :many
+SELECT cover_image_url, MAX(updated_at)::timestamptz AS last_used
+FROM carts
+WHERE user_id = $1
+  AND cover_image_url IS NOT NULL
+  AND cover_image_url <> ''
+GROUP BY cover_image_url
+ORDER BY last_used DESC
+LIMIT 24
+`
+
+type ListUserCoverImagesRow struct {
+	CoverImageUrl pgtype.Text        `json:"cover_image_url"`
+	LastUsed      pgtype.Timestamptz `json:"last_used"`
+}
+
+// Distinct cover images the user has used across their carts, most-recent
+// first — powers the "your covers" section of the cover picker.
+func (q *Queries) ListUserCoverImages(ctx context.Context, userID int64) ([]ListUserCoverImagesRow, error) {
+	rows, err := q.db.Query(ctx, listUserCoverImages, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUserCoverImagesRow
+	for rows.Next() {
+		var i ListUserCoverImagesRow
+		if err := rows.Scan(&i.CoverImageUrl, &i.LastUsed); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const nextCartItemPosition = `-- name: NextCartItemPosition :one
 SELECT COALESCE(MAX(position), -1) + 1 AS next_position FROM cart_items WHERE cart_id = $1
 `

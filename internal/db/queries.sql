@@ -35,6 +35,18 @@ SELECT * FROM carts
 WHERE user_id = $1 AND archived_at IS NULL
 ORDER BY updated_at DESC;
 
+-- name: ListUserCoverImages :many
+-- Distinct cover images the user has used across their carts, most-recent
+-- first — powers the "your covers" section of the cover picker.
+SELECT cover_image_url, MAX(updated_at)::timestamptz AS last_used
+FROM carts
+WHERE user_id = $1
+  AND cover_image_url IS NOT NULL
+  AND cover_image_url <> ''
+GROUP BY cover_image_url
+ORDER BY last_used DESC
+LIMIT 24;
+
 -- name: UpdateCart :one
 UPDATE carts SET
   title           = COALESCE($2, title),

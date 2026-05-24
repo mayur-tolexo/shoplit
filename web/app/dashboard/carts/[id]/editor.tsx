@@ -29,6 +29,7 @@ import { ProductCard } from "@/components/product-card";
 import { PasteUrlPreview } from "@/components/paste-url-preview";
 import { ShareSheet } from "@/components/share-sheet";
 import { CartCover } from "@/components/cart-cover";
+import { CoverPicker } from "@/components/cover-picker";
 import {
   addProductToCart,
   removeProductFromCart,
@@ -133,18 +134,15 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
           {/* Cover image */}
           <section>
             <h2 className="font-serif text-2xl mb-3">Cover image</h2>
-            <div className="relative aspect-[16/10] rounded-xl overflow-hidden border border-rule bg-paper">
+            <div className="relative aspect-[16/10] rounded-xl overflow-hidden border border-rule bg-paper mb-4">
               <CartCover coverImageUrl={cart.coverImageUrl} accentHex={cart.accentHex} title={cart.title} />
             </div>
-            <div className="mt-2 flex gap-2">
-              <input
-                type="url"
-                value={cart.coverImageUrl}
-                onChange={(e) => patch({ coverImageUrl: e.target.value })}
-                placeholder="https://… image URL — leave blank for a branded gradient"
-                className="flex-1 rounded-md border border-rule bg-cream px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              />
-            </div>
+            <CoverPicker
+              value={cart.coverImageUrl}
+              accentHex={cart.accentHex}
+              title={cart.title}
+              onChange={(url) => patch({ coverImageUrl: url })}
+            />
           </section>
 
           {/* Title — styled as a heading; subtle hover indicates editability */}

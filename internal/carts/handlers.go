@@ -15,6 +15,7 @@ import (
 // RegisterRoutes mounts /carts/*, /me, /og-fetch under the parent router.
 func RegisterRoutes(r chi.Router, svc *Service, fetcher *ogfetch.Fetcher) {
 	r.Get("/me", getMe(svc))
+	r.Get("/cover-images", listCoverImages(svc))
 	r.Get("/carts", listCarts(svc))
 	r.Post("/carts", createCart(svc))
 	r.Get("/carts/{id}", getCart(svc))
@@ -34,6 +35,18 @@ func getMe(svc *Service) http.HandlerFunc {
 			return
 		}
 		writeJSON(w, http.StatusOK, MarshalUser(u))
+	}
+}
+
+func listCoverImages(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uid, _ := auth.UserIDFromContext(r.Context())
+		covers, err := svc.ListMyCoverImages(r.Context(), uid)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string][]string{"covers": covers})
 	}
 }
 

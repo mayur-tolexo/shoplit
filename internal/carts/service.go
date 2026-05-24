@@ -60,6 +60,22 @@ func (s *Service) ListMyCarts(ctx context.Context, userID int64) ([]sqlcgen.Cart
 	return s.q.ListCartsByUser(ctx, userID)
 }
 
+// ListMyCoverImages returns the distinct cover image URLs the user has used
+// across their carts, most-recent first — their "personal" cover library.
+func (s *Service) ListMyCoverImages(ctx context.Context, userID int64) ([]string, error) {
+	rows, err := s.q.ListUserCoverImages(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(rows))
+	for _, r := range rows {
+		if r.CoverImageUrl.Valid {
+			out = append(out, r.CoverImageUrl.String)
+		}
+	}
+	return out, nil
+}
+
 // GetCart returns the cart and its items if userID owns it, otherwise ErrForbidden.
 func (s *Service) GetCart(ctx context.Context, userID, cartID int64) (sqlcgen.Cart, []sqlcgen.ListCartItemsRow, error) {
 	cart, err := s.q.GetCartByID(ctx, cartID)

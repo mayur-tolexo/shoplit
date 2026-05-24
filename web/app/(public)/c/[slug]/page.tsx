@@ -18,9 +18,10 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     openGraph: {
       title: cart.title,
       description: cart.bio ?? "",
-      // Only advertise a social-preview image when the creator set a real
-      // cover; the gradient fallback is a CSS effect, not a shareable URL.
-      ...(cart.coverImageUrl ? { images: [{ url: cart.coverImageUrl }] } : {}),
+      // Only advertise a social-preview image for an absolute cover URL. The
+      // gradient fallback is a CSS effect, and curated covers are relative
+      // asset paths — neither is a shareable absolute image URL.
+      ...(/^https?:\/\//.test(cart.coverImageUrl) ? { images: [{ url: cart.coverImageUrl }] } : {}),
     },
   };
 }

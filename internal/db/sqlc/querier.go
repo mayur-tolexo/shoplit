@@ -31,6 +31,9 @@ type Querier interface {
 	InsertClickEvent(ctx context.Context, arg InsertClickEventParams) error
 	ListCartItems(ctx context.Context, cartID int64) ([]ListCartItemsRow, error)
 	ListCartsByUser(ctx context.Context, userID int64) ([]Cart, error)
+	// Distinct cover images the user has used across their carts, most-recent
+	// first — powers the "your covers" section of the cover picker.
+	ListUserCoverImages(ctx context.Context, userID int64) ([]ListUserCoverImagesRow, error)
 	NextCartItemPosition(ctx context.Context, cartID int64) (int32, error)
 	RemoveCartItem(ctx context.Context, arg RemoveCartItemParams) error
 	ReorderCartItem(ctx context.Context, arg ReorderCartItemParams) error
