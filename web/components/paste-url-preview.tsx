@@ -42,27 +42,42 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
     setCanonicalUrl("");
   };
 
-  const handlePaste = (newUrl: string) => {
-    setUrl(newUrl);
-    if (!newUrl.match(/^https?:\/\/.+/)) {
+  const handlePaste = (raw: string) => {
+    setUrl(raw);
+    // Accept full retailer "share text", not just a bare URL. Apps share
+    // things like "Check out this product I found on Nykaa: <name> <url>" —
+    // pull the URL out of anywhere in the text.
+    const urlMatch = raw.match(/https?:\/\/[^\s]+/);
+    if (!urlMatch) {
       setShowForm(false);
       return;
     }
+    const targetUrl = urlMatch[0];
+    // The text around the URL is usually the product name. Strip a
+    // "Check out … on <retailer>:" style lead-in if present.
+    let shareTitle = raw.replace(targetUrl, "").trim();
+    const seg = shareTitle.match(/^(.*?:)\s*([\s\S]+)$/);
+    if (seg && /check out|found on|shared|recommend|buy this|loving/i.test(seg[1])) {
+      shareTitle = seg[2].trim();
+    }
+    setUrl(targetUrl); // normalize the field to just the URL
+
     startTransition(async () => {
       try {
-        const og = await fetchOG(newUrl);
+        const og = await fetchOG(targetUrl);
         setRetailer(og.retailer);
         setCanonicalUrl(og.canonicalUrl ?? "");
+        // Prefer the clean title from the share text; fall back to OG. This
+        // gives a usable title even when the server fetch is blocked.
+        setTitle(shareTitle || og.title || "");
         if (og.ok) {
-          setTitle(og.title ?? "");
           setImageUrl(og.imageUrl ?? "");
           setPriceText(og.priceText ?? "");
-          setAutofilled(true);
-        } else {
-          setAutofilled(false);
         }
+        setAutofilled(Boolean(shareTitle || (og.ok && (og.title || og.imageUrl))));
       } catch {
-        setAutofilled(false);
+        setTitle(shareTitle);
+        setAutofilled(Boolean(shareTitle));
       } finally {
         setShowForm(true);
       }
@@ -86,7 +101,7 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
   return (
     <section className="rounded-xl border-2 border-rule bg-paper p-5 space-y-4">
       <label className="block">
-        <span className="block text-sm font-medium mb-2">Paste a product URL to add it instantly</span>
+        <span className="block text-sm font-medium mb-2">Paste a product link — or the whole &ldquo;share&rdquo; text from a shopping app</span>
         <div className="relative">
           <Link2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
           <input
