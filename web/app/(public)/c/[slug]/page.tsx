@@ -6,6 +6,7 @@ import { ProductCard } from "@/components/product-card";
 import { RevealOnScroll } from "@/components/reveal-on-scroll";
 import { StickyShareBar } from "@/components/sticky-share-bar";
 import { CartCover } from "@/components/cart-cover";
+import { linkify } from "@/lib/linkify";
 
 export const dynamic = "force-dynamic";
 
@@ -40,14 +41,15 @@ export default async function PublicCartPage({ params }: { params: { slug: strin
           priority
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/30 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 px-5 sm:px-6 pb-6 sm:pb-10 max-w-3xl mx-auto text-cream">
+        {/* Stronger bottom scrim so cream text stays legible on light covers. */}
+        <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/55 to-ink/10" />
+        <div className="absolute inset-x-0 bottom-0 px-5 sm:px-6 pb-6 sm:pb-10 max-w-3xl mx-auto text-cream [text-shadow:0_1px_10px_rgba(0,0,0,0.55)]">
           <div className="flex items-center gap-2 mb-2 sm:mb-3">
-            <Image src={cart.ownerAvatarUrl} alt="" width={32} height={32} className="rounded-full border border-cream/30" unoptimized />
-            <span className="text-sm opacity-90">@{cart.ownerHandle}</span>
+            <Image src={cart.ownerAvatarUrl} alt="" width={32} height={32} className="rounded-full border border-cream/40" unoptimized />
+            <span className="text-sm font-medium">@{cart.ownerHandle}</span>
           </div>
           <h1 className="font-serif text-3xl sm:text-5xl leading-[1.05] mb-2 sm:mb-3">{cart.title}</h1>
-          {cart.bio && <p className="text-sm sm:text-base opacity-90 max-w-xl leading-relaxed">{cart.bio}</p>}
+          {cart.bio && <p className="text-sm sm:text-base text-cream/95 max-w-xl leading-relaxed">{linkify(cart.bio)}</p>}
         </div>
       </section>
 
