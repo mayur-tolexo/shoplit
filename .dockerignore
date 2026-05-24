@@ -1,0 +1,12 @@
+# Go build context — keep it to source + go.mod/sum. Everything web, build
+# outputs, and local dev state is irrelevant to the Go image.
+.git
+.logs
+.pids
+bin/
+web/
+docs/
+*.md
+.env
+.env.*
+deploy/.env

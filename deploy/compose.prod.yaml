@@ -1,0 +1,135 @@
+# Production stack for a single host (e.g. an AWS EC2 / Lightsail instance).
+# Run from the repo root:
+#
+#   docker compose -f deploy/compose.prod.yaml --env-file deploy/.env up -d --build
+#
+# Caddy is the only service that publishes ports (80/443) and terminates TLS.
+# Postgres and Redis stay on the internal network — never exposed publicly.
+name: shoplit
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: shoplit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: shoplit
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shoplit -d shoplit"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # One-shot: apply DB migrations, then exit. The API waits for it to finish.
+  migrate:
+    image: migrate/migrate:v4.19.1
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../internal/db/migrations:/migrations:ro
+    command:
+      - "-path=/migrations"
+      - "-database=postgres://shoplit:${POSTGRES_PASSWORD}@postgres:5432/shoplit?sslmode=disable"
+      - "up"
+
+  shoplit-api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: shoplit-go:latest
+    command: ["shoplit-api"]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      SHOPLIT_ENV: prod
+      SHOPLIT_API_ADDR: ":8080"
+      SHOPLIT_DB_DSN: postgres://shoplit:${POSTGRES_PASSWORD}@postgres:5432/shoplit?sslmode=disable
+      SHOPLIT_DB_DSN_READONLY: postgres://shoplit:${POSTGRES_PASSWORD}@postgres:5432/shoplit?sslmode=disable
+      SHOPLIT_REDIS_URL: redis://redis:6379/0
+      SHOPLIT_SESSION_SECRET: ${SHOPLIT_SESSION_SECRET}
+      SHOPLIT_COOKIE_SECURE: "true"
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET}
+      GOOGLE_OAUTH_REDIRECT_URL: ${PUBLIC_URL}/api/v1/auth/google/callback
+      SHOPLIT_CORS_ORIGIN: ${PUBLIC_URL}
+      SHOPLIT_FRONTEND_URL: ${PUBLIC_URL}
+
+  shoplit-redirect:
+    image: shoplit-go:latest
+    command: ["shoplit-redirect"]
+    restart: unless-stopped
+    depends_on:
+      shoplit-api:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SHOPLIT_ENV: prod
+      SHOPLIT_REDIRECT_ADDR: ":8081"
+      SHOPLIT_DB_DSN: postgres://shoplit:${POSTGRES_PASSWORD}@postgres:5432/shoplit?sslmode=disable
+      SHOPLIT_DB_DSN_READONLY: postgres://shoplit:${POSTGRES_PASSWORD}@postgres:5432/shoplit?sslmode=disable
+      SHOPLIT_REDIS_URL: redis://redis:6379/0
+
+  shoplit-web:
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+      args:
+        # Same-origin in prod, so the public site URL doubles as the API base.
+        NEXT_PUBLIC_API_BASE_URL: ${PUBLIC_URL}
+    image: shoplit-web:latest
+    restart: unless-stopped
+    depends_on:
+      shoplit-api:
+        condition: service_started
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      shoplit-web:
+        condition: service_started
+      shoplit-api:
+        condition: service_started
+      shoplit-redirect:
+        condition: service_started
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pg_data:
+  redis_data:
+  caddy_data:
+  caddy_config:

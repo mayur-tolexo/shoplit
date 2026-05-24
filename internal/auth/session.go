@@ -33,10 +33,20 @@ var userIDKey = ctxKey{}
 // SessionManager signs cookies with HMAC-SHA256 using a server secret.
 type SessionManager struct {
 	secret []byte
+	// secure marks issued cookies Secure (HTTPS-only). Off in local dev
+	// (plain http); MUST be on in production (served over HTTPS).
+	secure bool
 }
 
 func NewSessionManager(secret string) *SessionManager {
 	return &SessionManager{secret: []byte(secret)}
+}
+
+// WithSecure toggles the Secure attribute on issued cookies and returns the
+// manager for chaining. Production (HTTPS) should pass true.
+func (s *SessionManager) WithSecure(secure bool) *SessionManager {
+	s.secure = secure
+	return s
 }
 
 // SetUser sets the session cookie containing the authenticated user_id.
@@ -48,6 +58,7 @@ func (s *SessionManager) SetUser(w http.ResponseWriter, userID int64) {
 		Path:     "/",
 		MaxAge:   sessionMaxAge,
 		HttpOnly: true,
+		Secure:   s.secure,
 		SameSite: http.SameSiteLaxMode,
 	})
 }
@@ -86,6 +97,7 @@ func (s *SessionManager) SetTemp(w http.ResponseWriter, key, value string) {
 		Path:     "/",
 		MaxAge:   tempMaxAge,
 		HttpOnly: true,
+		Secure:   s.secure,
 		SameSite: http.SameSiteLaxMode,
 	})
 }

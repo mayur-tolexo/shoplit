@@ -62,7 +62,7 @@ func run() error {
 	}
 	defer rc.Close()
 
-	sm := auth.NewSessionManager(cfg.SessionSecret)
+	sm := auth.NewSessionManager(cfg.SessionSecret).WithSecure(cfg.CookieSecure)
 	upsert := auth.NewUserUpsertFn(q)
 	fetcher := ogfetch.New(rc)
 	svc := carts.NewService(q)

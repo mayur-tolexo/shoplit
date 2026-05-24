@@ -26,6 +26,11 @@ type Config struct {
 	// restart. Production MUST set this explicitly.
 	SessionSecret string `env:"SHOPLIT_SESSION_SECRET"`
 
+	// CookieSecure marks session cookies Secure (HTTPS-only). false for local
+	// dev over http; MUST be true in production (served over HTTPS) or browsers
+	// silently drop the cookie.
+	CookieSecure bool `env:"SHOPLIT_COOKIE_SECURE" envDefault:"false"`
+
 	// Google OAuth 2.0 — create a client in https://console.cloud.google.com/.
 	// See docs/superpowers/runbooks/google-oauth-setup.md.
 	// Optional: if either is empty, the Google sign-in route returns 503 with

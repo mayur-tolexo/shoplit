@@ -1,0 +1,34 @@
+{
+	# Let's Encrypt registration address (set ACME_EMAIL in deploy/.env).
+	email {$ACME_EMAIL}
+}
+
+# Redirect www → apex.
+www.{$SITE_DOMAIN} {
+	redir https://{$SITE_DOMAIN}{uri} permanent
+}
+
+# Single public origin. Caddy terminates TLS (auto Let's Encrypt) and routes by
+# path prefix to the right service. Serving everything from one origin keeps
+# the session cookie first-party — no CORS or cross-domain cookie issues.
+{$SITE_DOMAIN} {
+	encode zstd gzip
+
+	# Creator API + Google OAuth + public read endpoints (all under /api).
+	handle /api/* {
+		reverse_proxy shoplit-api:8080
+	}
+
+	# Outbound click redirects / single-product short links.
+	handle /go/* {
+		reverse_proxy shoplit-redirect:8081
+	}
+	handle /p/* {
+		reverse_proxy shoplit-redirect:8081
+	}
+
+	# Everything else → the Next.js frontend.
+	handle {
+		reverse_proxy shoplit-web:3000
+	}
+}
