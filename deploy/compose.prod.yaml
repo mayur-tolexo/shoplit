@@ -78,6 +78,10 @@ services:
       GOOGLE_OAUTH_REDIRECT_URL: ${PUBLIC_URL}/api/v1/auth/google/callback
       SHOPLIT_CORS_ORIGIN: ${PUBLIC_URL}
       SHOPLIT_FRONTEND_URL: ${PUBLIC_URL}
+      SHOPLIT_UPLOAD_DIR: /data/uploads
+    volumes:
+      # Persist uploaded images across container rebuilds/redeploys.
+      - uploads_data:/data/uploads
 
   shoplit-redirect:
     image: shoplit-go:latest
@@ -138,3 +142,4 @@ volumes:
   redis_data:
   caddy_data:
   caddy_config:
+  uploads_data:

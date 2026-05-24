@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { Loader2, Link2, Plus } from "lucide-react";
-import { fetchOG } from "@/lib/api-client";
+import { toast } from "sonner";
+import { fetchOG, uploadImage } from "@/lib/api-client";
 import { parseShare } from "@/lib/parse-share";
 import type { Product, Retailer } from "@/lib/types";
 import { RetailerIcon, retailerLabel } from "./retailer-icon";
@@ -30,9 +31,21 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
   const [priceText, setPriceText] = useState("");
   const [note, setNote] = useState("");
   const [retailer, setRetailer] = useState<Retailer>("other");
-  // Final URL after following redirects — short links (amzn.in/d/…) resolve
-  // here, and we store this so the redirect is direct + affiliate-tagged.
-  const [canonicalUrl, setCanonicalUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+
+  const onPickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      setImageUrl(await uploadImage(file));
+    } catch {
+      toast.error("Couldn't upload that photo — try a smaller image.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const reset = () => {
     setRawInput("");
@@ -44,7 +57,6 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
     setPriceText("");
     setNote("");
     setRetailer("other");
-    setCanonicalUrl("");
   };
 
   const handlePaste = (raw: string) => {
@@ -64,7 +76,9 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
       try {
         const og = await fetchOG(parsed.productUrl);
         setRetailer(og.retailer);
-        setCanonicalUrl(og.canonicalUrl ?? "");
+        // Show the resolved canonical link (short links expand) so the visible
+        // "Product link" field is exactly what gets stored — never a surprise.
+        if (og.canonicalUrl) setUrl(og.canonicalUrl);
         // Prefer the clean title from the share text; fall back to OG. This
         // gives a usable title even when the server fetch is blocked.
         setTitle(parsed.title || og.title || "");
@@ -92,8 +106,8 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
       imageUrl: imageUrl.trim(),
       priceText: priceText.trim(),
       retailer,
-      // Prefer the resolved canonical URL so short links redirect directly.
-      originalUrl: canonicalUrl || url,
+      // Store exactly the link shown in the editable field above.
+      originalUrl: url.trim(),
       note: note.trim(),
     });
     reset();
@@ -174,6 +188,10 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
                   placeholder="Image URL"
                   className="flex-1 rounded-md border border-rule bg-cream px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 />
+                <label className="shrink-0 inline-flex items-center rounded-md border border-rule bg-cream px-3 py-2 text-sm font-medium cursor-pointer hover:bg-paper whitespace-nowrap">
+                  {uploading ? "…" : "📷"}
+                  <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={onPickPhoto} />
+                </label>
               </div>
             </div>
           </div>
@@ -181,10 +199,7 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
           <input
             type="url"
             value={url}
-            onChange={(e) => {
-              setUrl(e.target.value);
-              setCanonicalUrl(""); // a manual edit wins over the resolved link
-            }}
+            onChange={(e) => setUrl(e.target.value)}
             placeholder="Product link"
             className="w-full rounded-md border border-rule bg-cream px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           />

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { addSharedItem, createCart } from "@/lib/api-client";
+import { addSharedItem, createCart, uploadImage } from "@/lib/api-client";
 import { parseShare, type ParsedShare } from "@/lib/parse-share";
 
 type CartOpt = { id: string; title: string; slug: string };
@@ -27,6 +27,7 @@ export function AddForm({ carts, initial }: { carts: CartOpt[]; initial: ParsedS
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [cartBusy, setCartBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [added, setAdded] = useState<CartOpt | null>(null);
   const [newCartTitle, setNewCartTitle] = useState("");
 
@@ -35,6 +36,20 @@ export function AddForm({ carts, initial }: { carts: CartOpt[]; initial: ParsedS
     if (p.productUrl) setOriginalUrl(p.productUrl);
     if (p.title) setTitle(p.title);
     if (p.priceText) setPriceText(p.priceText);
+  };
+
+  const onPickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file
+    if (!file) return;
+    setUploading(true);
+    try {
+      setImageUrl(await uploadImage(file));
+    } catch {
+      toast.error("Couldn't upload that photo — try a smaller image.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const submit = async () => {
@@ -146,10 +161,22 @@ export function AddForm({ carts, initial }: { carts: CartOpt[]; initial: ParsedS
         <input value={originalUrl} onChange={(e) => setOriginalUrl(e.target.value)} className={inputCls} />
       </label>
 
-      <label className="block">
-        <span className="block text-sm font-medium mb-1">Image URL <span className="text-muted font-normal">(optional)</span></span>
-        <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="Leave blank for a placeholder" className={inputCls} />
-      </label>
+      <div>
+        <span className="block text-sm font-medium mb-1">Photo <span className="text-muted font-normal">(optional)</span></span>
+        <div className="flex items-center gap-3">
+          {imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={imageUrl} alt="" className="w-16 h-16 rounded-md object-cover border border-rule" />
+          ) : (
+            <div className="w-16 h-16 rounded-md border border-rule bg-paper grid place-items-center text-[10px] text-muted text-center">no photo</div>
+          )}
+          <label className="rounded-full border border-ink px-4 py-2 text-sm font-medium cursor-pointer hover:bg-paper">
+            {uploading ? "Uploading…" : "📷 Add a photo"}
+            <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={onPickPhoto} />
+          </label>
+        </div>
+        <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="…or paste an image URL" className={`${inputCls} mt-2 text-sm`} />
+      </div>
 
       <label className="block">
         <span className="block text-sm font-medium mb-1">Note <span className="text-muted font-normal">(optional)</span></span>
