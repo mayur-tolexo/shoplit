@@ -198,3 +198,8 @@ export async function logout(): Promise<void> {
 export async function submitFeedback(input: { message: string; email?: string; name?: string; page?: string }): Promise<void> {
   await jsonFetch("/api/public/feedback", { method: "POST", body: JSON.stringify(input) });
 }
+
+export interface FeedbackItem { id: string; message: string; email: string; name: string; page: string; createdAt: string }
+export async function listFeedback(opts?: { cookie?: string }): Promise<FeedbackItem[]> {
+  return jsonFetch<FeedbackItem[]>("/api/v1/feedback", opts);
+}

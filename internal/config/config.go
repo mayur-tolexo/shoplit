@@ -57,6 +57,8 @@ type Config struct {
 	// Where feature-request notifications are sent, and the From line Resend uses.
 	FeedbackEmail string `env:"SHOPLIT_FEEDBACK_EMAIL" envDefault:"mayur.das4@gmail.com"`
 	FeedbackFrom  string `env:"SHOPLIT_FEEDBACK_FROM" envDefault:"shoplit <onboarding@resend.dev>"`
+	// Comma-separated user IDs allowed to view the in-app feedback inbox.
+	AdminUserIDs string `env:"SHOPLIT_ADMIN_USER_IDS" envDefault:"1"`
 
 	// Origin allowed to make credentialed cross-origin requests to the API.
 	// In dev this is the Next.js frontend.

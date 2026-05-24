@@ -484,6 +484,38 @@ func (q *Queries) ListCartsByUser(ctx context.Context, userID int64) ([]Cart, er
 	return items, nil
 }
 
+const listFeedback = `-- name: ListFeedback :many
+SELECT id, message, email, name, page, created_at
+FROM feedback ORDER BY created_at DESC LIMIT 200
+`
+
+func (q *Queries) ListFeedback(ctx context.Context) ([]Feedback, error) {
+	rows, err := q.db.Query(ctx, listFeedback)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Feedback
+	for rows.Next() {
+		var i Feedback
+		if err := rows.Scan(
+			&i.ID,
+			&i.Message,
+			&i.Email,
+			&i.Name,
+			&i.Page,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUserCoverImages = `-- name: ListUserCoverImages :many
 SELECT cover_image_url, MAX(updated_at)::timestamptz AS last_used
 FROM carts

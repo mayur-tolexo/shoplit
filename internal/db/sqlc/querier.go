@@ -39,6 +39,7 @@ type Querier interface {
 	InsertFeedback(ctx context.Context, arg InsertFeedbackParams) error
 	ListCartItems(ctx context.Context, cartID int64) ([]ListCartItemsRow, error)
 	ListCartsByUser(ctx context.Context, userID int64) ([]Cart, error)
+	ListFeedback(ctx context.Context) ([]Feedback, error)
 	// Distinct cover images the user has used across their carts, most-recent
 	// first — powers the "your covers" section of the cover picker.
 	ListUserCoverImages(ctx context.Context, userID int64) ([]ListUserCoverImagesRow, error)

@@ -136,6 +136,10 @@ UPDATE extension_tokens SET last_used_at = now() WHERE id = $1;
 -- name: InsertFeedback :exec
 INSERT INTO feedback (message, email, name, page) VALUES ($1, $2, $3, $4);
 
+-- name: ListFeedback :many
+SELECT id, message, email, name, page, created_at
+FROM feedback ORDER BY created_at DESC LIMIT 200;
+
 -- ─── ANALYTICS (reads) ──────────────────────────────────────────────────────
 
 -- name: CartViews7d :one

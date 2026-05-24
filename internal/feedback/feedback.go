@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/mayur-tolexo/shoplit/internal/auth"
 	"github.com/mayur-tolexo/shoplit/internal/mailer"
 	sqlcgen "github.com/mayur-tolexo/shoplit/internal/db/sqlc"
 )
@@ -24,11 +26,16 @@ type Service struct {
 	q      *sqlcgen.Queries
 	mailer Mailer
 	to     string
+	admins map[int64]bool
 }
 
 // NewService constructs a Service.
-func NewService(q *sqlcgen.Queries, m Mailer, to string) *Service {
-	return &Service{q: q, mailer: m, to: to}
+func NewService(q *sqlcgen.Queries, m Mailer, to string, adminIDs []int64) *Service {
+	admins := make(map[int64]bool, len(adminIDs))
+	for _, id := range adminIDs {
+		admins[id] = true
+	}
+	return &Service{q: q, mailer: m, to: to, admins: admins}
 }
 
 type feedbackRequest struct {
@@ -105,5 +112,50 @@ func (s *Service) Handler() http.HandlerFunc {
 		}()
 
 		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+type feedbackItem struct {
+	ID        string `json:"id"`
+	Message   string `json:"message"`
+	Email     string `json:"email"`
+	Name      string `json:"name"`
+	Page      string `json:"page"`
+	CreatedAt string `json:"createdAt"`
+}
+
+// ListHandler returns an http.HandlerFunc for admin-only listing of feedback.
+// It must be registered under the authenticated /api/v1 group.
+func (s *Service) ListHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uid, ok := auth.UserIDFromContext(r.Context())
+		if !ok || !s.admins[uid] {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+
+		rows, err := s.q.ListFeedback(r.Context())
+		if err != nil {
+			slog.Error("feedback: list", "err", err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		items := make([]feedbackItem, 0, len(rows))
+		for _, row := range rows {
+			items = append(items, feedbackItem{
+				ID:        strconv.FormatInt(row.ID, 10),
+				Message:   row.Message,
+				Email:     row.Email.String,
+				Name:      row.Name.String,
+				Page:      row.Page.String,
+				CreatedAt: row.CreatedAt.Time.Format(time.RFC3339),
+			})
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(items); err != nil {
+			slog.Error("feedback: encode list", "err", err)
+		}
 	}
 }

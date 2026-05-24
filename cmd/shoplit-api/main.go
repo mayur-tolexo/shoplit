@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -63,7 +65,18 @@ func run() error {
 
 	q := sqlcgen.New(pool)
 	mlr := mailer.NewResend(cfg.ResendAPIKey, cfg.FeedbackFrom)
-	fb := feedback.NewService(q, mlr, cfg.FeedbackEmail)
+
+	var adminIDs []int64
+	for _, part := range strings.Split(cfg.AdminUserIDs, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		if id, err := strconv.ParseInt(part, 10, 64); err == nil {
+			adminIDs = append(adminIDs, id)
+		}
+	}
+	fb := feedback.NewService(q, mlr, cfg.FeedbackEmail, adminIDs)
 
 	sm := auth.NewSessionManager(cfg.SessionSecret).
 		WithSecure(cfg.CookieSecure).
@@ -110,6 +123,7 @@ func run() error {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(sm.RequireUser())
 		r.Post("/extension/token", exttoken.MintHandler(q))
+		r.Get("/feedback", fb.ListHandler())
 		carts.RegisterRoutes(r, svc, fetcher)
 	})
 
