@@ -3,7 +3,6 @@ package carts
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -37,11 +36,14 @@ func (s *Service) CreateCart(ctx context.Context, userID int64, title string) (s
 			return sqlcgen.Cart{}, err
 		}
 		cart, err := s.q.CreateCart(ctx, sqlcgen.CreateCartParams{
-			UserID:        userID,
-			Slug:          slug,
-			Title:         title,
-			IsPublic:      true,
-			CoverImageUrl: pgtype.Text{String: fmt.Sprintf("https://picsum.photos/seed/%s/1600/1000", slug), Valid: true},
+			UserID:   userID,
+			Slug:     slug,
+			Title:    title,
+			IsPublic: true,
+			// No default cover — an empty cover renders as a branded accent
+			// gradient on the frontend (looks intentional, not like a random
+			// stock photo). The creator can add a real cover in the editor.
+			CoverImageUrl: pgtype.Text{Valid: false},
 		})
 		if err == nil {
 			return cart, nil

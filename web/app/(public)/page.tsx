@@ -1,9 +1,9 @@
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { NavBar } from "@/components/nav-bar";
 import { Footer } from "@/components/footer";
 import { CartCard } from "@/components/cart-card";
+import { CartCover } from "@/components/cart-cover";
 import { RevealOnScroll } from "@/components/reveal-on-scroll";
 import { listMyCarts } from "@/lib/api-client";
 
@@ -215,7 +215,7 @@ function PhoneCard({
   cart,
   index,
 }: {
-  cart: { id: string; slug: string; title: string; ownerHandle: string; coverImageUrl: string };
+  cart: { id: string; slug: string; title: string; ownerHandle: string; coverImageUrl: string; accentHex: string };
   index: number;
 }) {
   // Layout: index 0 is the front phone, larger; 1 and 2 are smaller, offset behind.
@@ -255,14 +255,12 @@ function PhoneCard({
       className="absolute aspect-[9/16] rounded-[2rem] overflow-hidden border-4 border-ink bg-ink shadow-2xl"
       style={style}
     >
-      <Image
-        src={cart.coverImageUrl}
-        alt=""
-        fill
+      <CartCover
+        coverImageUrl={cart.coverImageUrl}
+        accentHex={cart.accentHex}
+        title={cart.title}
         sizes="(max-width: 1024px) 50vw, 25vw"
-        className="object-cover"
         priority={front}
-        unoptimized
       />
       <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/15 to-transparent" />
       <div className="absolute bottom-3 left-3 right-3 text-cream">

@@ -28,6 +28,7 @@ import { PhoneFrame } from "@/components/phone-frame";
 import { ProductCard } from "@/components/product-card";
 import { PasteUrlPreview } from "@/components/paste-url-preview";
 import { ShareSheet } from "@/components/share-sheet";
+import { CartCover } from "@/components/cart-cover";
 import {
   addProductToCart,
   removeProductFromCart,
@@ -133,14 +134,14 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
           <section>
             <h2 className="font-serif text-2xl mb-3">Cover image</h2>
             <div className="relative aspect-[16/10] rounded-xl overflow-hidden border border-rule bg-paper">
-              <Image src={cart.coverImageUrl} alt="" fill className="object-cover" unoptimized />
+              <CartCover coverImageUrl={cart.coverImageUrl} accentHex={cart.accentHex} title={cart.title} />
             </div>
             <div className="mt-2 flex gap-2">
               <input
                 type="url"
                 value={cart.coverImageUrl}
                 onChange={(e) => patch({ coverImageUrl: e.target.value })}
-                placeholder="https://… image URL"
+                placeholder="https://… image URL — leave blank for a branded gradient"
                 className="flex-1 rounded-md border border-rule bg-cream px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
@@ -249,7 +250,7 @@ function PreviewCartPage({ cart }: { cart: Cart }) {
   return (
     <div style={{ ["--accent" as string]: cart.accentHex } as React.CSSProperties}>
       <div className="relative aspect-[5/4]">
-        <Image src={cart.coverImageUrl} alt="" fill className="object-cover" unoptimized />
+        <CartCover coverImageUrl={cart.coverImageUrl} accentHex={cart.accentHex} title={cart.title} />
         <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/20 to-transparent" />
         <div className="absolute bottom-3 left-3 right-3 text-cream">
           <p className="text-xs opacity-90">@{cart.ownerHandle}</p>

@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Check, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Cart } from "@/lib/types";
+import { CartCover } from "@/components/cart-cover";
 
 interface CartCardProps {
   cart: Cart;
@@ -41,13 +41,13 @@ export function CartCard({ cart, href, showCopy = true }: CartCardProps) {
       className="block group rounded-xl overflow-hidden border border-rule bg-cream transition-all hover:shadow-md hover:-translate-y-0.5"
     >
       <div className="relative aspect-[16/10] bg-paper">
-        <Image
-          src={cart.coverImageUrl}
+        <CartCover
+          coverImageUrl={cart.coverImageUrl}
+          accentHex={cart.accentHex}
+          title={cart.title}
           alt={cart.title}
-          fill
           sizes="(max-width: 768px) 100vw, 33vw"
-          className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-          unoptimized
+          imageClassName="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
         />
         {showCopy && (
           <button

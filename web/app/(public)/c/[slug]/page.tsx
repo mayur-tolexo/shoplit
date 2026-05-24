@@ -5,6 +5,7 @@ import { getCartBySlug } from "@/lib/api-client";
 import { ProductCard } from "@/components/product-card";
 import { RevealOnScroll } from "@/components/reveal-on-scroll";
 import { StickyShareBar } from "@/components/sticky-share-bar";
+import { CartCover } from "@/components/cart-cover";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     openGraph: {
       title: cart.title,
       description: cart.bio ?? "",
-      images: [{ url: cart.coverImageUrl }],
+      // Only advertise a social-preview image when the creator set a real
+      // cover; the gradient fallback is a CSS effect, not a shareable URL.
+      ...(cart.coverImageUrl ? { images: [{ url: cart.coverImageUrl }] } : {}),
     },
   };
 }
@@ -29,14 +32,12 @@ export default async function PublicCartPage({ params }: { params: { slug: strin
     <div style={{ ["--accent" as string]: cart.accentHex } as React.CSSProperties}>
       {/* HERO */}
       <section className="relative w-full" style={{ height: "min(70vh, 640px)" }}>
-        <Image
-          src={cart.coverImageUrl}
-          alt=""
-          fill
+        <CartCover
+          coverImageUrl={cart.coverImageUrl}
+          accentHex={cart.accentHex}
+          title={cart.title}
           priority
           sizes="100vw"
-          className="object-cover"
-          unoptimized
         />
         <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/30 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 px-6 pb-10 max-w-3xl mx-auto text-cream">
