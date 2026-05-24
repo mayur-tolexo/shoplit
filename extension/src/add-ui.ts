@@ -17,9 +17,26 @@ async function getToken(): Promise<string | null> {
 export async function renderAddUI({ root, product, onConnectNeeded }: RenderOpts) {
   const token = await getToken();
   if (!token) {
-    root.innerHTML = `<div class="sl-pad"><p>Connect the extension to your shoplit account first.</p>
-      <button id="sl-connect" class="sl-btn">Connect to shoplit</button></div>`;
+    // Two ways to connect: (1) "Open connect page" attempts an automatic
+    // handoff (needs the published extension ID); (2) paste the code shown on
+    // that page — works for unpacked/dev with no ID coordination.
+    root.innerHTML = `<div class="sl-pad">
+      <p>Connect the extension to your shoplit account.</p>
+      <button id="sl-connect" class="sl-btn">Open connect page</button>
+      <p class="sl-msg">Then paste the connection code shown there:</p>
+      <input id="sl-code" class="sl-input" placeholder="Paste connection code" />
+      <button id="sl-save-code" class="sl-btn">Connect</button>
+      <p id="sl-msg" class="sl-msg"></p>
+    </div>`;
     root.querySelector<HTMLButtonElement>("#sl-connect")!.onclick = onConnectNeeded;
+    root.querySelector<HTMLButtonElement>("#sl-save-code")!.onclick = () => {
+      const code = root.querySelector<HTMLInputElement>("#sl-code")!.value.trim();
+      if (!code) return;
+      chrome.storage.local.set({ token: code }, () => {
+        // Re-render now that we have a token.
+        renderAddUI({ root, product, onConnectNeeded });
+      });
+    };
     return;
   }
   if (!product) {
