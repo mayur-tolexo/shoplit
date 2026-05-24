@@ -41,17 +41,17 @@ export default async function PublicCartPage({ params }: { params: { slug: strin
           priority
           sizes="100vw"
         />
-        {/* Two-layer scrim: a flat tint tames bright covers, and a strong bottom
-            gradient anchors the text — keeps cream text legible on ANY cover. */}
-        <div className="absolute inset-0 bg-ink/25" />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink/95 via-ink/45 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 px-5 sm:px-6 pb-6 sm:pb-10 max-w-3xl mx-auto text-cream [text-shadow:0_1px_12px_rgba(0,0,0,0.7)]">
+        {/* Two-layer scrim: a flat tint tames bright covers, and a near-solid bottom
+            band anchors the text — keeps cream text legible on ANY cover. */}
+        <div className="absolute inset-0 bg-ink/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/60 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 px-5 sm:px-6 pb-6 sm:pb-10 max-w-3xl mx-auto text-cream [text-shadow:0_1px_12px_rgba(0,0,0,0.85)]">
           <div className="flex items-center gap-2 mb-2 sm:mb-3">
             <Image src={cart.ownerAvatarUrl} alt="" width={32} height={32} className="rounded-full border border-cream/40" unoptimized />
             <span className="text-sm font-medium">@{cart.ownerHandle}</span>
           </div>
           <h1 className="font-serif text-3xl sm:text-5xl leading-[1.05] mb-2 sm:mb-3">{cart.title}</h1>
-          {cart.bio && <p className="text-sm sm:text-base text-cream max-w-xl leading-relaxed">{linkify(cart.bio)}</p>}
+          {cart.bio && <p className="text-sm sm:text-base font-medium text-cream max-w-xl leading-relaxed">{linkify(cart.bio)}</p>}
         </div>
       </section>
 

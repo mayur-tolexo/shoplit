@@ -268,8 +268,8 @@ function PhoneCard({
         sizes="(max-width: 1024px) 50vw, 25vw"
         priority={front}
       />
-      <div className="absolute inset-0 bg-ink/20" />
-      <div className="absolute inset-0 bg-gradient-to-t from-ink/95 via-ink/45 to-transparent" />
+      <div className="absolute inset-0 bg-ink/30" />
+      <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/60 to-transparent" />
       <div className="absolute bottom-3 left-3 right-3 text-cream [text-shadow:0_1px_8px_rgba(0,0,0,0.6)]">
         <p className="font-serif text-lg sm:text-xl leading-tight">
           {cart.title}

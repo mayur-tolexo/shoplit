@@ -352,9 +352,9 @@ function PreviewCartPage({ cart }: { cart: Cart }) {
     <div style={{ ["--accent" as string]: cart.accentHex } as React.CSSProperties}>
       <div className="relative aspect-[5/4]">
         <CartCover coverImageUrl={cart.coverImageUrl} accentHex={cart.accentHex} title={cart.title} />
-        <div className="absolute inset-0 bg-ink/25" />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink/95 via-ink/45 to-transparent" />
-        <div className="absolute bottom-3 left-3 right-3 text-cream [text-shadow:0_1px_10px_rgba(0,0,0,0.7)]">
+        <div className="absolute inset-0 bg-ink/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/60 to-transparent" />
+        <div className="absolute bottom-3 left-3 right-3 text-cream [text-shadow:0_1px_10px_rgba(0,0,0,0.85)]">
           <p className="text-xs font-medium">@{cart.ownerHandle}</p>
           <p className="font-serif text-xl leading-tight">{cart.title}</p>
         </div>
