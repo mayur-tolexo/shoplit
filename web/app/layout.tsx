@@ -31,12 +31,14 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "shoplit",
   description: "Build a curated cart of products from Amazon, Myntra, Nykaa and more, then share it with a short URL.",
+  manifest: "/manifest.webmanifest",
 };
 
 // Correct mobile scaling. user-scalable stays enabled for accessibility.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  themeColor: "#B5532A",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
