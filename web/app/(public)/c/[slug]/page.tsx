@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getCartBySlug } from "@/lib/api-client";
 import { ProductCard } from "@/components/product-card";
+import { RevealOnScroll } from "@/components/reveal-on-scroll";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +55,9 @@ export default async function PublicCartPage({ params }: { params: { slug: strin
         ) : (
           <div className="grid gap-6 md:grid-cols-2">
             {cart.products.map((p, i) => (
-              <ProductCard key={p.id} product={p} eagerImage={i < 2} />
+              <RevealOnScroll key={p.id} index={i}>
+                <ProductCard product={p} eagerImage={i < 2} />
+              </RevealOnScroll>
             ))}
           </div>
         )}
