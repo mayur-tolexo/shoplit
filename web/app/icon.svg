@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#B5532A"/>
+  <!-- bag handle -->
+  <path d="M24 28 a8 8 0 0 1 16 0" fill="none" stroke="#F4EBDD" stroke-width="3.6" stroke-linecap="round"/>
+  <!-- bag body -->
+  <path d="M18.5 27 h27 a0 0 0 0 1 0 0 l2 19.2 a4.5 4.5 0 0 1-4.5 5 H21 a4.5 4.5 0 0 1-4.5-5 z" fill="#F4EBDD"/>
+</svg>
