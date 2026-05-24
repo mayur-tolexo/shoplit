@@ -18,6 +18,7 @@ import (
 	"github.com/mayur-tolexo/shoplit/internal/config"
 	"github.com/mayur-tolexo/shoplit/internal/db"
 	sqlcgen "github.com/mayur-tolexo/shoplit/internal/db/sqlc"
+	"github.com/mayur-tolexo/shoplit/internal/exttoken"
 	"github.com/mayur-tolexo/shoplit/internal/httpx"
 	"github.com/mayur-tolexo/shoplit/internal/ogfetch"
 	"github.com/mayur-tolexo/shoplit/internal/publicapi"
@@ -60,13 +61,15 @@ func run() error {
 
 	q := sqlcgen.New(pool)
 
+	sm := auth.NewSessionManager(cfg.SessionSecret).
+		WithSecure(cfg.CookieSecure).
+		WithBearerResolver(exttoken.Resolver(q))
+
 	rc, err := redis.Open(ctx, cfg.RedisURL)
 	if err != nil {
 		return err
 	}
 	defer rc.Close()
-
-	sm := auth.NewSessionManager(cfg.SessionSecret).WithSecure(cfg.CookieSecure)
 	upsert := auth.NewUserUpsertFn(q)
 	fetcher := ogfetch.New(rc)
 	svc := carts.NewService(q)
@@ -101,6 +104,7 @@ func run() error {
 	// Authenticated creator endpoints
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(sm.RequireUser())
+		r.Post("/extension/token", exttoken.MintHandler(q))
 		carts.RegisterRoutes(r, svc, fetcher)
 	})
 
