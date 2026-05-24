@@ -23,7 +23,7 @@ async function main() {
   if (!product && tab?.url) {
     product = { title: "", imageUrl: "", priceText: "", url: tab.url, retailer: retailerFromUrl(tab.url) };
   }
-  await renderAddUI({ root, product, onConnectNeeded: openConnect });
+  await renderAddUI({ root, product, onConnectNeeded: openConnect, onClose: () => window.close() });
 }
 
 main();

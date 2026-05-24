@@ -12,6 +12,22 @@ chrome.runtime.onMessage.addListener((msg: Msg, _sender, sendResponse) => {
 });
 
 const BTN_ID = "sl-add-btn";
+const BTN_STYLE_ID = "sl-btn-styles";
+
+// White bag mark for the on-page button (button background is terracotta).
+const BTN_MARK = `<svg viewBox="0 0 64 64" width="17" height="17" aria-hidden style="flex:none"><path d="M24 28 a8 8 0 0 1 16 0" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/><path d="M18.5 27 h27 l2 19.2 a4.5 4.5 0 0 1-4.5 5 H21 a4.5 4.5 0 0 1-4.5-5 z" fill="#fff"/></svg>`;
+
+function ensureButtonStyles() {
+  if (document.getElementById(BTN_STYLE_ID)) return;
+  const s = document.createElement("style");
+  s.id = BTN_STYLE_ID;
+  s.textContent = `
+    @keyframes sl-btn-in { from{opacity:0;transform:translateY(6px) scale(.96)} to{opacity:1;transform:none} }
+    .sl-fab-btn { display:inline-flex; align-items:center; gap:8px; background:linear-gradient(135deg,#C2410C,#9A3412); color:#fff; border:0; border-radius:999px; padding:10px 18px; font:600 14px/1 system-ui,-apple-system,sans-serif; cursor:pointer; box-shadow:0 4px 14px rgba(154,52,18,.35); transition:transform .16s ease, box-shadow .16s ease; animation:sl-btn-in .26s ease both; }
+    .sl-fab-btn:hover { transform:translateY(-2px); box-shadow:0 9px 24px rgba(154,52,18,.45); }
+    .sl-fab-btn:active { transform:translateY(0); }`;
+  (document.head || document.documentElement).appendChild(s);
+}
 
 // Inject an "Add to shoplit" button ONLY on single-product pages — placed on
 // its own line right under the product title. A full-width wrapper guarantees
@@ -22,15 +38,11 @@ function injectButton() {
   const product = extractProduct(document);
   if (!product) return;
 
+  ensureButtonStyles();
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.textContent = "＋ Add to shoplit";
-  Object.assign(btn.style, {
-    display: "inline-flex", alignItems: "center", gap: "6px",
-    background: "#B5532A", color: "#fff", border: "0", borderRadius: "999px",
-    padding: "9px 16px", font: "600 14px system-ui, sans-serif", cursor: "pointer",
-    boxShadow: "0 2px 8px rgba(0,0,0,.18)",
-  });
+  btn.className = "sl-fab-btn";
+  btn.innerHTML = `${BTN_MARK}<span>Add to shoplit</span>`;
   btn.onclick = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -78,6 +90,7 @@ function togglePanel(product: ReturnType<typeof extractProduct>) {
     root: panel,
     product,
     onConnectNeeded: () => window.open("https://shoplit.in/connect-extension", "_blank"),
+    onClose: () => panel.remove(),
     onAdded: () => panel.remove(),
   });
 }
