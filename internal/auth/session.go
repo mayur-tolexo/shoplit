@@ -125,6 +125,11 @@ func (s *SessionManager) GetTemp(r *http.Request, key string) (string, error) {
 	return s.verify(c.Value)
 }
 
+// TempCookieName returns the cookie name SetTemp/GetTemp use for key.
+func (s *SessionManager) TempCookieName(key string) string {
+	return tempCookiePrefix + key
+}
+
 // ClearTemp removes a previously-stored temp value.
 func (s *SessionManager) ClearTemp(w http.ResponseWriter, key string) {
 	http.SetCookie(w, &http.Cookie{

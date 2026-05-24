@@ -3,9 +3,25 @@ package auth
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"golang.org/x/oauth2"
 )
+
+// safeNextPath returns p only if it is a safe same-site relative path
+// (begins with a single "/", no scheme, no protocol-relative "//"). Otherwise "".
+func safeNextPath(p string) string {
+	if p == "" || p[0] != '/' {
+		return ""
+	}
+	if strings.HasPrefix(p, "//") {
+		return ""
+	}
+	if strings.Contains(p, "://") {
+		return ""
+	}
+	return p
+}
 
 // GoogleUserInfo matches the response from https://www.googleapis.com/oauth2/v3/userinfo.
 type GoogleUserInfo struct {
@@ -49,6 +65,9 @@ func HandleGoogleStart(cfg *oauth2.Config, sm *SessionManager) http.Handler {
 			return
 		}
 		sm.SetTemp(w, "oauth_state", state)
+		if next := safeNextPath(r.URL.Query().Get("next")); next != "" {
+			sm.SetTemp(w, "oauth_next", next)
+		}
 		http.Redirect(w, r, cfg.AuthCodeURL(state, oauth2.AccessTypeOnline), http.StatusFound)
 	})
 }
@@ -101,7 +120,15 @@ func HandleGoogleCallback(cfg *oauth2.Config, sm *SessionManager, upsert UpsertF
 		}
 
 		sm.SetUser(w, uid)
-		http.Redirect(w, r, frontendURL+"/dashboard", http.StatusFound)
+
+		dest := "/dashboard"
+		if next, err := sm.GetTemp(r, "oauth_next"); err == nil {
+			if safe := safeNextPath(next); safe != "" {
+				dest = safe
+			}
+		}
+		sm.ClearTemp(w, "oauth_next")
+		http.Redirect(w, r, frontendURL+dest, http.StatusFound)
 	})
 }
 
