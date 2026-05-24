@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { logout } from "@/lib/api-client";
+import { Logo } from "@/components/logo";
 import type { User } from "@/lib/types";
 import {
   DropdownMenu,
@@ -41,12 +42,7 @@ export function NavBar({ variant = "marketing", user }: NavBarProps) {
   return (
     <nav className="border-b border-rule bg-cream/90 backdrop-blur sticky top-0 z-40">
       <div className="mx-auto max-w-6xl flex items-center justify-between px-4 sm:px-6 py-3">
-        <Link
-          href={variant === "app" ? "/dashboard" : "/"}
-          className="font-serif text-2xl tracking-tight"
-        >
-          shoplit
-        </Link>
+        <Logo href={variant === "app" ? "/dashboard" : "/"} />
         {variant === "marketing" && (
           <div className="flex items-center gap-4 text-sm">
             <Link href="/login" className="text-muted hover:text-ink transition-colors">

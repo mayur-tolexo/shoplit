@@ -1,4 +1,4 @@
-.PHONY: help build test lint run-api run-redirect run-web web-install migrate-up migrate-down sqlc install-tools up up-infra down down-clean logs ps
+.PHONY: help build test lint run-api run-redirect run-web web-install migrate-up migrate-down deploy sqlc install-tools up up-infra down down-clean logs ps
 
 GO ?= go
 
@@ -85,6 +85,9 @@ migrate-up: ## Apply all up migrations (requires `make install-tools` first)
 
 migrate-down: ## Roll back one migration
 	migrate -path internal/db/migrations -database "$(SHOPLIT_DB_DSN)" down 1
+
+deploy: ## Redeploy to the EC2 host (pull, rebuild, restart). Optional: SVC=shoplit-web
+	./deploy/redeploy.sh $(SVC)
 
 sqlc: ## Regenerate sqlc code (requires `make install-tools` first)
 	sqlc generate
