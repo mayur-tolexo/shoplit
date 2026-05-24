@@ -103,6 +103,7 @@ func (f *Fetcher) Fetch(ctx context.Context, rawURL string) (Result, error) {
 	if out.Title == "" {
 		out.Title = strings.TrimSpace(doc.Find("title").First().Text())
 	}
+	out.Title = cleanTitle(out.Title)
 	if price := pickMeta(doc, "product:price:amount", "og:price:amount"); price != "" {
 		out.PriceText = "₹" + price
 	}
@@ -137,6 +138,30 @@ func pickMeta(doc *goquery.Document, props ...string) string {
 		}
 	}
 	return ""
+}
+
+// cleanTitle strips the marketing noise retailers wrap around product names
+// in their OG titles — e.g. Myntra's "Buy X - - Apparel for Men", Nykaa's
+// "X - Buy X Online at Best Price | Nykaa", Amazon's "X : Amazon.in: ...".
+func cleanTitle(t string) string {
+	t = strings.TrimSpace(t)
+	t = strings.TrimPrefix(t, "Buy ")
+
+	// Cut everything from the first occurrence of any noise separator.
+	cutAt := []string{" | ", " : ", " - - ", " - Buy ", " - Apparel for ", " Online at Best Price"}
+	low := strings.ToLower(t)
+	cut := len(t)
+	for _, sep := range cutAt {
+		if i := strings.Index(low, strings.ToLower(sep)); i >= 0 && i < cut {
+			cut = i
+		}
+	}
+	t = t[:cut]
+
+	// Tidy: collapse internal whitespace, drop a dangling " -".
+	t = strings.Join(strings.Fields(t), " ")
+	t = strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(t), "-"))
+	return strings.TrimSpace(t)
 }
 
 // RetailerFromURL infers the retailer from the hostname. "other" if unknown.
