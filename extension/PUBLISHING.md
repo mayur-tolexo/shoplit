@@ -48,8 +48,6 @@ Free, like the rest of shoplit. Sign up at https://shoplit.in
 `Add a product from a supported retailer's page to the user's shoplit cart.`
 
 **Permission justifications:**
-- **activeTab** — Read the product on the page the user is currently viewing, only when they click the extension.
-- **scripting** — Extract the product details (title, image, price, link) from the active product page when invoked.
 - **storage** — Store the user's shoplit connection token locally so they stay signed in.
 - **host permission — retailer sites** (amazon, myntra, nykaa, flipkart, ajio) — Show the "Add to shoplit" button and read the product on supported shopping sites.
 - **host permission — shoplit.in** — Call the shoplit API to list the user's carts and add the product.

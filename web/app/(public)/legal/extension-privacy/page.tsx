@@ -42,7 +42,6 @@ export default function ExtensionPrivacyPage() {
 
         <h2 className="font-serif text-2xl mt-8 mb-2">Permissions, explained</h2>
         <ul className="leading-relaxed text-ink list-disc pl-5 space-y-1">
-          <li><strong>activeTab / scripting</strong> — read the product details of the page you&apos;re on, when you invoke the extension.</li>
           <li><strong>storage</strong> — keep your connection token so you stay signed in.</li>
           <li><strong>host access (retailer sites)</strong> — show the &ldquo;Add to shoplit&rdquo; button and read the product on supported shopping sites.</li>
           <li><strong>host access (shoplit.in)</strong> — call the shoplit API to list your carts and add the product.</li>
