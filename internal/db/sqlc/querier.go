@@ -18,10 +18,13 @@ type Querier interface {
 	BumpClickDaily(ctx context.Context, linkID int64) error
 	// ─── CARTS ──────────────────────────────────────────────────────────────────
 	CreateCart(ctx context.Context, arg CreateCartParams) (Cart, error)
+	// ─── EXTENSION TOKENS ────────────────────────────────────────────────────────
+	CreateExtensionToken(ctx context.Context, arg CreateExtensionTokenParams) error
 	// ─── LINKS ──────────────────────────────────────────────────────────────────
 	CreateLink(ctx context.Context, arg CreateLinkParams) (Link, error)
 	GetCartByID(ctx context.Context, id int64) (Cart, error)
 	GetCartBySlug(ctx context.Context, slug string) (Cart, error)
+	GetExtensionTokenByHash(ctx context.Context, tokenHash string) (GetExtensionTokenByHashRow, error)
 	GetLinkBySlug(ctx context.Context, slug string) (Link, error)
 	GetUserByGoogleSub(ctx context.Context, googleSub pgtype.Text) (User, error)
 	// internal/db/queries.sql
@@ -37,6 +40,7 @@ type Querier interface {
 	NextCartItemPosition(ctx context.Context, cartID int64) (int32, error)
 	RemoveCartItem(ctx context.Context, arg RemoveCartItemParams) error
 	ReorderCartItem(ctx context.Context, arg ReorderCartItemParams) error
+	TouchExtensionToken(ctx context.Context, id int64) error
 	UpdateCart(ctx context.Context, arg UpdateCartParams) (Cart, error)
 	// Edit a product's display fields (the URL/retailer live on the link and stay
 	// immutable — changing those is effectively a different product).

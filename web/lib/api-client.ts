@@ -184,6 +184,13 @@ export async function fetchOG(url: string): Promise<OGResult> {
   };
 }
 
+export async function mintExtensionToken(): Promise<string> {
+  const r = await jsonFetch<{ token: string }>("/api/v1/extension/token", {
+    method: "POST",
+  });
+  return r.token;
+}
+
 export async function logout(): Promise<void> {
   await fetch(`${API_BASE}/api/v1/auth/logout`, { method: "POST", credentials: "include" });
 }

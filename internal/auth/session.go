@@ -30,12 +30,18 @@ type ctxKey struct{}
 
 var userIDKey = ctxKey{}
 
+// BearerResolver resolves a raw Bearer token to a user_id. Returns an error if
+// the token is unknown or revoked. Wired in by main via WithBearerResolver.
+type BearerResolver func(ctx context.Context, token string) (int64, error)
+
 // SessionManager signs cookies with HMAC-SHA256 using a server secret.
 type SessionManager struct {
 	secret []byte
 	// secure marks issued cookies Secure (HTTPS-only). Off in local dev
 	// (plain http); MUST be on in production (served over HTTPS).
 	secure bool
+	// bearer optionally resolves an Authorization: Bearer token to a user_id.
+	bearer BearerResolver
 }
 
 func NewSessionManager(secret string) *SessionManager {
@@ -46,6 +52,14 @@ func NewSessionManager(secret string) *SessionManager {
 // manager for chaining. Production (HTTPS) should pass true.
 func (s *SessionManager) WithSecure(secure bool) *SessionManager {
 	s.secure = secure
+	return s
+}
+
+// WithBearerResolver enables Authorization: Bearer auth as a fallback to the
+// session cookie (used by the browser extension). Returns the manager for
+// chaining.
+func (s *SessionManager) WithBearerResolver(fn BearerResolver) *SessionManager {
+	s.bearer = fn
 	return s
 }
 

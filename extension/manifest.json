@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "shoplit — add to cart",
+  "version": "0.1.0",
+  "description": "Add any product to your shoplit cart from Amazon, Myntra, Nykaa, Flipkart, AJIO.",
+  "action": { "default_popup": "popup.html", "default_title": "Add to shoplit" },
+  "background": { "service_worker": "service-worker.js", "type": "module" },
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": [
+    "https://shoplit.in/*",
+    "https://*.nykaa.com/*",
+    "https://*.myntra.com/*",
+    "https://*.amazon.in/*",
+    "https://*.amazon.com/*",
+    "https://*.flipkart.com/*",
+    "https://*.ajio.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.nykaa.com/*",
+        "https://*.myntra.com/*",
+        "https://*.amazon.in/*",
+        "https://*.amazon.com/*",
+        "https://*.flipkart.com/*",
+        "https://*.ajio.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "externally_connectable": { "matches": ["https://shoplit.in/*"] }
+}
