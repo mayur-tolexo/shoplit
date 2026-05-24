@@ -123,6 +123,13 @@ export function CoverPicker({ value, accentHex, title, onChange }: CoverPickerPr
         {value && !CURATED_SET.has(value) && (
           <p className="mt-1 text-xs text-muted truncate">Current: {value}</p>
         )}
+        <p className="mt-2 text-xs text-muted leading-relaxed">
+          Need an image? Grab a free one from{" "}
+          <a href="https://unsplash.com/s/photos/shopping" target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-2">Unsplash</a>
+          {" or "}
+          <a href="https://www.pexels.com/search/shopping/" target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-2">Pexels</a>
+          {" "}— open the photo, right-click → <span className="font-medium">Copy image address</span>, and paste it above.
+        </p>
       </div>
     </div>
   );
