@@ -31,6 +31,11 @@ type Config struct {
 	// silently drop the cookie.
 	CookieSecure bool `env:"SHOPLIT_COOKIE_SECURE" envDefault:"false"`
 
+	// AutoMigrate runs DB migrations from internal/db/migrations on startup.
+	// Convenient in dev; set false in prod where a dedicated migrate job runs
+	// them and the binary ships without the migrations directory.
+	AutoMigrate bool `env:"SHOPLIT_AUTO_MIGRATE" envDefault:"true"`
+
 	// Google OAuth 2.0 — create a client in https://console.cloud.google.com/.
 	// See docs/superpowers/runbooks/google-oauth-setup.md.
 	// Optional: if either is empty, the Google sign-in route returns 503 with

@@ -70,6 +70,9 @@ services:
       SHOPLIT_REDIS_URL: redis://redis:6379/0
       SHOPLIT_SESSION_SECRET: ${SHOPLIT_SESSION_SECRET}
       SHOPLIT_COOKIE_SECURE: "true"
+      # The migrate one-shot already applied migrations; the binary has no
+      # migrations dir, so skip the in-process dev migration.
+      SHOPLIT_AUTO_MIGRATE: "false"
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET}
       GOOGLE_OAUTH_REDIRECT_URL: ${PUBLIC_URL}/api/v1/auth/google/callback

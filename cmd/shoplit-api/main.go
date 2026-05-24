@@ -49,9 +49,13 @@ func run() error {
 	}
 	defer pool.Close()
 
-	// Apply migrations on startup (dev convenience — prod uses a dedicated job).
-	if err := db.MigrateUp(cfg.DBDSN, "internal/db/migrations"); err != nil {
-		return err
+	// Apply migrations on startup (dev convenience). In prod a dedicated
+	// migrate job runs them and the binary ships without the migrations
+	// directory, so SHOPLIT_AUTO_MIGRATE=false skips this.
+	if cfg.AutoMigrate {
+		if err := db.MigrateUp(cfg.DBDSN, "internal/db/migrations"); err != nil {
+			return err
+		}
 	}
 
 	q := sqlcgen.New(pool)
