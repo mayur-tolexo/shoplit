@@ -1,4 +1,4 @@
-import { NavBar } from "@/components/nav-bar";
+import { MarketingNav } from "@/components/marketing-nav";
 import { Footer } from "@/components/footer";
 
 export const metadata = { title: "Extension Privacy · shoplit" };
@@ -6,7 +6,7 @@ export const metadata = { title: "Extension Privacy · shoplit" };
 export default function ExtensionPrivacyPage() {
   return (
     <>
-      <NavBar variant="marketing" />
+      <MarketingNav />
       <main className="mx-auto max-w-2xl px-4 sm:px-6 py-16">
         <h1 className="font-serif text-4xl mb-2">shoplit browser extension — Privacy</h1>
         <p className="text-sm text-muted mb-8">Last updated: 2026-05-24</p>

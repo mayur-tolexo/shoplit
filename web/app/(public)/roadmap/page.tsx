@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { NavBar } from "@/components/nav-bar";
+import { MarketingNav } from "@/components/marketing-nav";
 import { Footer } from "@/components/footer";
 import { RevealOnScroll } from "@/components/reveal-on-scroll";
 import {
@@ -59,7 +59,7 @@ const ITEMS: Item[] = [
 export default function RoadmapPage() {
   return (
     <>
-      <NavBar variant="marketing" />
+      <MarketingNav />
       <main className="mx-auto max-w-6xl px-4 sm:px-6">
         {/* HERO */}
         <section className="pt-16 pb-10 sm:pt-24 sm:pb-14 text-center max-w-2xl mx-auto">

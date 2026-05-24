@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
-import { NavBar } from "@/components/nav-bar";
+import { MarketingNav } from "@/components/marketing-nav";
 import { Footer } from "@/components/footer";
 import { CartCard } from "@/components/cart-card";
 import { CartCover } from "@/components/cart-cover";
@@ -21,7 +21,7 @@ export default async function LandingPage() {
   }
   return (
     <>
-      <NavBar variant="marketing" />
+      <MarketingNav />
       <main>
         {/* HERO — animated gradient background + cascading phone mockups */}
         <section className="relative overflow-hidden">

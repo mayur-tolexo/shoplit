@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { NavBar } from "@/components/nav-bar";
+import { MarketingNav } from "@/components/marketing-nav";
 import { Footer } from "@/components/footer";
 import { Download, Puzzle, Monitor, Smartphone } from "lucide-react";
 
@@ -27,7 +27,7 @@ const mobileSteps = [
 export default function GetExtensionPage() {
   return (
     <>
-      <NavBar variant="marketing" />
+      <MarketingNav />
       <main className="mx-auto max-w-2xl px-4 sm:px-6 py-16">
         <div className="text-center mb-10">
           <span

@@ -48,15 +48,31 @@ export function NavBar({ variant = "marketing", user }: NavBarProps) {
             <Link href="/feedback" className="text-muted hover:text-ink transition-colors">
               Feedback
             </Link>
-            <Link href="/login" className="text-muted hover:text-ink transition-colors">
-              Sign in
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-full bg-ink text-cream px-4 py-2 font-medium hover:opacity-90 transition-opacity"
-            >
-              Start free
-            </Link>
+            {user ? (
+              // Already signed in — reflect it instead of showing "Sign in"
+              // (otherwise returning to the homepage looks like a logout).
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-2 rounded-full bg-ink text-cream pl-2 pr-4 py-1.5 font-medium hover:opacity-90 transition-opacity"
+              >
+                {user.avatarUrl && (
+                  <Image src={user.avatarUrl} width={24} height={24} alt="" className="rounded-full" unoptimized />
+                )}
+                Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className="text-muted hover:text-ink transition-colors">
+                  Sign in
+                </Link>
+                <Link
+                  href="/login"
+                  className="rounded-full bg-ink text-cream px-4 py-2 font-medium hover:opacity-90 transition-opacity"
+                >
+                  Start free
+                </Link>
+              </>
+            )}
           </div>
         )}
         {variant === "app" && user && (
