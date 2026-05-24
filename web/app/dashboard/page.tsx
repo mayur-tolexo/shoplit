@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Eye, MousePointerClick, Plus, ShoppingBag, Sparkles } from "lucide-react";
@@ -37,17 +38,30 @@ export default async function DashboardPage() {
 
   const firstName = user.displayName.split(" ")[0] || "creator";
   const isEmpty = carts.length === 0;
+  const productCount = carts.reduce((n, c) => n + (c.products?.length ?? 0), 0);
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 pb-24 sm:pb-10">
       {/* GREETING */}
-      <div className="mb-8">
-        <p className="text-sm text-muted mb-1">
-          {isEmpty ? "Welcome to shoplit" : "Welcome back"}
-        </p>
-        <h1 className="font-serif text-3xl sm:text-4xl tracking-tight">
-          {isEmpty ? `Hi ${firstName} 👋` : `Your carts, ${firstName}`}
-        </h1>
+      <div className="flex items-center gap-4 mb-8">
+        {user.avatarUrl && (
+          <Image
+            src={user.avatarUrl}
+            width={56}
+            height={56}
+            alt={user.displayName}
+            unoptimized
+            className="rounded-full border border-rule shrink-0"
+          />
+        )}
+        <div>
+          <p className="text-sm text-muted mb-0.5">
+            {isEmpty ? "Welcome to shoplit" : "Welcome back"}
+          </p>
+          <h1 className="font-serif text-3xl sm:text-4xl tracking-tight leading-none">
+            {isEmpty ? `Hi ${firstName} 👋` : `Your carts, ${firstName}`}
+          </h1>
+        </div>
       </div>
 
       {isEmpty ? (
@@ -55,21 +69,24 @@ export default async function DashboardPage() {
       ) : (
         <>
           {/* STATS */}
-          <div className="grid grid-cols-3 gap-3 sm:gap-6 mb-10">
+          <div className="grid grid-cols-3 gap-3 sm:gap-5 mb-12">
             <StatCard
-              icon={<ShoppingBag size={16} className="text-muted" />}
+              icon={<ShoppingBag size={18} />}
               label="Active carts"
               value={carts.length}
+              hint={`${productCount} ${productCount === 1 ? "product" : "products"} curated`}
             />
             <StatCard
-              icon={<Eye size={16} className="text-muted" />}
-              label="Views (7d)"
+              icon={<Eye size={18} />}
+              label="Views"
               value={totals.views}
+              hint="across all carts · 7d"
             />
             <StatCard
-              icon={<MousePointerClick size={16} className="text-muted" />}
-              label="Clicks (7d)"
+              icon={<MousePointerClick size={18} />}
+              label="Clicks"
               value={totals.clicks}
+              hint="through to retailers · 7d"
             />
           </div>
 
@@ -89,6 +106,7 @@ export default async function DashboardPage() {
             {carts.map((c) => (
               <CartCard key={c.id} cart={c} />
             ))}
+            <NewCartTile />
           </div>
         </>
       )}
@@ -100,21 +118,44 @@ function StatCard({
   icon,
   label,
   value,
+  hint,
 }: {
   icon: React.ReactNode;
   label: string;
   value: number;
+  hint: string;
 }) {
   return (
-    <div className="rounded-xl border border-rule bg-cream px-4 py-4 sm:px-6 sm:py-5">
-      <div className="flex items-center gap-2 mb-1">
-        {icon}
-        <p className="text-xs sm:text-sm text-muted">{label}</p>
+    <div className="group rounded-2xl border border-rule bg-cream p-4 sm:p-6 transition-shadow hover:shadow-sm">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <span
+          className="grid place-items-center size-9 sm:size-10 rounded-xl text-accent"
+          style={{ backgroundColor: "color-mix(in srgb, var(--accent) 12%, transparent)" }}
+        >
+          {icon}
+        </span>
       </div>
-      <p className="font-serif text-2xl sm:text-3xl tabular-nums">
+      <p className="font-serif text-3xl sm:text-4xl tabular-nums leading-none mb-1.5">
         <AnimatedNumber value={value} />
       </p>
+      <p className="text-xs sm:text-sm font-medium">{label}</p>
+      <p className="text-xs text-muted mt-0.5 hidden sm:block">{hint}</p>
     </div>
+  );
+}
+
+function NewCartTile() {
+  return (
+    <Link
+      href="/dashboard/carts/new"
+      className="group flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-rule text-muted hover:border-accent hover:text-accent transition-colors min-h-[220px]"
+    >
+      <span className="grid place-items-center size-12 rounded-full border-2 border-current">
+        <Plus size={22} />
+      </span>
+      <span className="font-medium text-sm">New cart</span>
+      <span className="text-xs text-muted group-hover:text-accent/80">Start curating</span>
+    </Link>
   );
 }
 
