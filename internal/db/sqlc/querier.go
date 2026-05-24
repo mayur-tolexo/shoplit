@@ -32,6 +32,8 @@ type Querier interface {
 	GetUserByID(ctx context.Context, id int64) (User, error)
 	// ─── ANALYTICS (writes) ────────────────────────────────────────────────────
 	InsertClickEvent(ctx context.Context, arg InsertClickEventParams) error
+	// ─── FEEDBACK ────────────────────────────────────────────────────────────────
+	InsertFeedback(ctx context.Context, arg InsertFeedbackParams) error
 	ListCartItems(ctx context.Context, cartID int64) ([]ListCartItemsRow, error)
 	ListCartsByUser(ctx context.Context, userID int64) ([]Cart, error)
 	// Distinct cover images the user has used across their carts, most-recent

@@ -19,7 +19,9 @@ import (
 	"github.com/mayur-tolexo/shoplit/internal/db"
 	sqlcgen "github.com/mayur-tolexo/shoplit/internal/db/sqlc"
 	"github.com/mayur-tolexo/shoplit/internal/exttoken"
+	"github.com/mayur-tolexo/shoplit/internal/feedback"
 	"github.com/mayur-tolexo/shoplit/internal/httpx"
+	"github.com/mayur-tolexo/shoplit/internal/mailer"
 	"github.com/mayur-tolexo/shoplit/internal/ogfetch"
 	"github.com/mayur-tolexo/shoplit/internal/publicapi"
 	"github.com/mayur-tolexo/shoplit/internal/redis"
@@ -60,6 +62,8 @@ func run() error {
 	}
 
 	q := sqlcgen.New(pool)
+	mlr := mailer.NewResend(cfg.ResendAPIKey, cfg.FeedbackFrom)
+	fb := feedback.NewService(q, mlr, cfg.FeedbackEmail)
 
 	sm := auth.NewSessionManager(cfg.SessionSecret).
 		WithSecure(cfg.CookieSecure).
@@ -99,6 +103,7 @@ func run() error {
 	// Public, unauthenticated read endpoints
 	r.Route("/api/public", func(r chi.Router) {
 		publicapi.RegisterRoutes(r, svc)
+		r.Post("/feedback", fb.Handler())
 	})
 
 	// Authenticated creator endpoints

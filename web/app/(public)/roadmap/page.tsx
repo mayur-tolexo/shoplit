@@ -1,22 +1,17 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { NavBar } from "@/components/nav-bar";
 import { Footer } from "@/components/footer";
 import { RevealOnScroll } from "@/components/reveal-on-scroll";
 import {
   Lock, ImageUp, UsersRound, Search, Rss, Heart, Star,
-  Wallet, BellRing, FolderHeart, Puzzle, Mail, ArrowRight,
+  Wallet, BellRing, FolderHeart, Puzzle, ArrowRight,
 } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Roadmap · shoplit",
   description: "What's shipping next on shoplit — and tell us what to build.",
 };
-
-const FEEDBACK_EMAIL = "mayur.das4@gmail.com";
-const mailto =
-  `mailto:${FEEDBACK_EMAIL}` +
-  `?subject=${encodeURIComponent("shoplit feature request")}` +
-  `&body=${encodeURIComponent("Hi! I'd love shoplit to have:\n\n")}`;
 
 type Status = "Beta" | "Soon" | "Planned" | "Exploring";
 
@@ -74,12 +69,12 @@ export default function RoadmapPage() {
             shoplit is just getting started. Here&apos;s what we&apos;re building next — and the
             single best way to shape it is to tell us what you want.
           </p>
-          <a
-            href={mailto}
+          <Link
+            href="/feedback"
             className="inline-flex items-center gap-2 rounded-full bg-ink text-cream px-6 py-3 font-medium hover:opacity-90 transition-opacity"
           >
-            <Mail size={16} /> Request a feature
-          </a>
+            Request a feature
+          </Link>
         </section>
 
         {/* GRID */}
@@ -115,13 +110,12 @@ export default function RoadmapPage() {
               Every feature here started as a creator&apos;s request. Tell us what would make
               shoplit indispensable for you — we read every email.
             </p>
-            <a
-              href={mailto}
+            <Link
+              href="/feedback"
               className="inline-flex items-center gap-2 rounded-full bg-accent text-cream px-6 py-3 font-medium hover:opacity-90 transition-opacity"
             >
-              Email us your idea <ArrowRight size={16} />
-            </a>
-            <p className="text-cream/60 text-sm mt-4">{FEEDBACK_EMAIL}</p>
+              Share your idea <ArrowRight size={16} />
+            </Link>
           </div>
         </section>
       </main>

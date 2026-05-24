@@ -66,6 +66,15 @@ type ExtensionToken struct {
 	RevokedAt  pgtype.Timestamptz `json:"revoked_at"`
 }
 
+type Feedback struct {
+	ID        int64              `json:"id"`
+	Message   string             `json:"message"`
+	Email     pgtype.Text        `json:"email"`
+	Name      pgtype.Text        `json:"name"`
+	Page      pgtype.Text        `json:"page"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type Link struct {
 	ID          int64              `json:"id"`
 	Slug        string             `json:"slug"`

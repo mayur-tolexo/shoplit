@@ -45,6 +45,9 @@ export function NavBar({ variant = "marketing", user }: NavBarProps) {
         <Logo href={variant === "app" ? "/dashboard" : "/"} />
         {variant === "marketing" && (
           <div className="flex items-center gap-4 text-sm">
+            <Link href="/feedback" className="text-muted hover:text-ink transition-colors">
+              Feedback
+            </Link>
             <Link href="/login" className="text-muted hover:text-ink transition-colors">
               Sign in
             </Link>

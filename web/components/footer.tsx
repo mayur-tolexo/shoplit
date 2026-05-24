@@ -7,12 +7,9 @@ export function Footer({ minimal = false }: { minimal?: boolean }) {
         <p className="font-serif text-base text-ink">shoplit</p>
         <nav className="flex flex-wrap items-center gap-5">
           <Link href="/roadmap" className="hover:text-ink transition-colors">Roadmap</Link>
-          <a
-            href="mailto:mayur.das4@gmail.com?subject=shoplit%20feature%20request"
-            className="hover:text-ink transition-colors"
-          >
+          <Link href="/feedback" className="hover:text-ink transition-colors">
             Request a feature
-          </a>
+          </Link>
           <Link href="/legal/privacy" className="hover:text-ink transition-colors">Privacy</Link>
           <Link href="/legal/terms" className="hover:text-ink transition-colors">Terms</Link>
           {!minimal && (

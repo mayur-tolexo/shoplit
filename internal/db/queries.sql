@@ -130,3 +130,8 @@ SELECT id, user_id, revoked_at FROM extension_tokens WHERE token_hash = $1;
 
 -- name: TouchExtensionToken :exec
 UPDATE extension_tokens SET last_used_at = now() WHERE id = $1;
+
+-- ─── FEEDBACK ────────────────────────────────────────────────────────────────
+
+-- name: InsertFeedback :exec
+INSERT INTO feedback (message, email, name, page) VALUES ($1, $2, $3, $4);

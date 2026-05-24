@@ -194,3 +194,7 @@ export async function mintExtensionToken(): Promise<string> {
 export async function logout(): Promise<void> {
   await fetch(`${API_BASE}/api/v1/auth/logout`, { method: "POST", credentials: "include" });
 }
+
+export async function submitFeedback(input: { message: string; email?: string; name?: string; page?: string }): Promise<void> {
+  await jsonFetch("/api/public/feedback", { method: "POST", body: JSON.stringify(input) });
+}

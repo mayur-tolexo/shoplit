@@ -51,6 +51,13 @@ type Config struct {
 	// XHR calls reach the backend cross-origin with credentials.
 	GoogleOAuthRedirectURL string `env:"GOOGLE_OAUTH_REDIRECT_URL" envDefault:"http://localhost:8080/api/v1/auth/google/callback"`
 
+	// Resend (resend.com) API key for sending the feedback notification email.
+	// Optional: if empty, feedback is still stored; the email is skipped (logged).
+	ResendAPIKey string `env:"RESEND_API_KEY"`
+	// Where feature-request notifications are sent, and the From line Resend uses.
+	FeedbackEmail string `env:"SHOPLIT_FEEDBACK_EMAIL" envDefault:"mayur.das4@gmail.com"`
+	FeedbackFrom  string `env:"SHOPLIT_FEEDBACK_FROM" envDefault:"shoplit <onboarding@resend.dev>"`
+
 	// Origin allowed to make credentialed cross-origin requests to the API.
 	// In dev this is the Next.js frontend.
 	CORSAllowedOrigin string `env:"SHOPLIT_CORS_ORIGIN" envDefault:"http://localhost:3000"`

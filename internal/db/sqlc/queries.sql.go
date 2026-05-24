@@ -339,6 +339,29 @@ func (q *Queries) InsertClickEvent(ctx context.Context, arg InsertClickEventPara
 	return err
 }
 
+const insertFeedback = `-- name: InsertFeedback :exec
+
+INSERT INTO feedback (message, email, name, page) VALUES ($1, $2, $3, $4)
+`
+
+type InsertFeedbackParams struct {
+	Message string      `json:"message"`
+	Email   pgtype.Text `json:"email"`
+	Name    pgtype.Text `json:"name"`
+	Page    pgtype.Text `json:"page"`
+}
+
+// ─── FEEDBACK ────────────────────────────────────────────────────────────────
+func (q *Queries) InsertFeedback(ctx context.Context, arg InsertFeedbackParams) error {
+	_, err := q.db.Exec(ctx, insertFeedback,
+		arg.Message,
+		arg.Email,
+		arg.Name,
+		arg.Page,
+	)
+	return err
+}
+
 const listCartItems = `-- name: ListCartItems :many
 SELECT ci.id, ci.cart_id, ci.position, ci.link_id, ci.title, ci.description, ci.image_url, ci.price_text, ci.retailer, ci.created_at, l.slug AS link_slug, l.original_url
 FROM cart_items ci
