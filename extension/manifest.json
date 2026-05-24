@@ -3,6 +3,7 @@
   "name": "shoplit — add to cart",
   "version": "0.1.0",
   "description": "Add any product to your shoplit cart from Amazon, Myntra, Nykaa, Flipkart, AJIO.",
+  "homepage_url": "https://shoplit.in",
   "icons": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" },
   "action": {
     "default_popup": "popup.html",
