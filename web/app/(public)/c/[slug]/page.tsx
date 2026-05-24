@@ -31,8 +31,8 @@ export default async function PublicCartPage({ params }: { params: { slug: strin
   if (!cart) notFound();
   return (
     <div style={{ ["--accent" as string]: cart.accentHex } as React.CSSProperties}>
-      {/* HERO */}
-      <section className="relative w-full" style={{ height: "min(70vh, 640px)" }}>
+      {/* HERO — short on mobile so products are near the fold, taller on desktop */}
+      <section className="relative w-full h-[38vh] min-h-[260px] sm:h-[52vh] lg:h-[min(68vh,620px)]">
         <CartCover
           coverImageUrl={cart.coverImageUrl}
           accentHex={cart.accentHex}
@@ -41,13 +41,13 @@ export default async function PublicCartPage({ params }: { params: { slug: strin
           sizes="100vw"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/30 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 px-6 pb-10 max-w-3xl mx-auto text-cream">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="absolute inset-x-0 bottom-0 px-5 sm:px-6 pb-6 sm:pb-10 max-w-3xl mx-auto text-cream">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3">
             <Image src={cart.ownerAvatarUrl} alt="" width={32} height={32} className="rounded-full border border-cream/30" unoptimized />
             <span className="text-sm opacity-90">@{cart.ownerHandle}</span>
           </div>
-          <h1 className="font-serif text-4xl sm:text-5xl leading-[1.05] mb-3">{cart.title}</h1>
-          {cart.bio && <p className="text-base opacity-90 max-w-xl leading-relaxed">{cart.bio}</p>}
+          <h1 className="font-serif text-3xl sm:text-5xl leading-[1.05] mb-2 sm:mb-3">{cart.title}</h1>
+          {cart.bio && <p className="text-sm sm:text-base opacity-90 max-w-xl leading-relaxed">{cart.bio}</p>}
         </div>
       </section>
 
