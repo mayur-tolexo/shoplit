@@ -1,8 +1,24 @@
 # Publishing the shoplit extension to the Chrome Web Store
 
-Everything you upload is in this folder. The packaged file is
-`shoplit-extension-v<version>.zip` (rebuild with `npm run build` then re-zip —
+Everything you upload is in this folder. The current packaged file is
+**`shoplit-extension-0.1.1.zip`** (rebuild with `npm run build` then re-zip —
 see bottom). Below is the exact copy to paste into the Developer Dashboard.
+
+> ## ⚠️ Resubmission (v0.1.1) — what changed and why
+> Version **0.1.0** was rejected under **Use of Permissions** (ref *Purple
+> Potassium*): it requested **`scripting`** but never called `chrome.scripting`.
+>
+> **Fix in v0.1.1:** permissions narrowed to **`["storage"]`** only.
+> - Removed **`scripting`** — the content script is injected statically via the
+>   manifest `content_scripts` key, which needs no `scripting` permission.
+> - Removed **`activeTab`** — the popup's `tabs.sendMessage` to the content
+>   script is already covered by the retailer `host_permissions`, and
+>   `tabs.create` / `tabs.query` (we only read `tab.id`) need no permission. So
+>   `activeTab` was unused too; removed pre-emptively to keep permissions minimal.
+>
+> No functionality changed. When you resubmit, in the dashboard's reviewer-notes
+> field you can state: *"Removed the unused `scripting` permission (and the
+> redundant `activeTab`); the extension now requests only `storage`."*
 
 ## 0. One-time setup
 1. Go to **https://chrome.google.com/webstore/devconsole**.
@@ -10,9 +26,13 @@ see bottom). Below is the exact copy to paste into the Developer Dashboard.
 3. Pay the **one-time $5 registration fee** and complete the account/identity
    verification (Chrome requires a verified publisher).
 
-## 1. Create the item
-1. Dashboard → **Add new item** → upload `shoplit-extension-v0.1.0.zip`.
-2. It parses the manifest; fill in the listing fields below.
+## 1. Create / update the item
+- **First submission:** Dashboard → **Add new item** → upload `shoplit-extension-0.1.1.zip`.
+- **Resubmitting the rejected item:** open the existing item → **Package** → **Upload
+  new package** → choose `shoplit-extension-0.1.1.zip` (the version bump to 0.1.1
+  is required — Chrome rejects re-uploads with the same version).
+
+It parses the manifest; the listing fields below are unchanged from before.
 
 ## 2. Store listing (copy/paste)
 
@@ -82,6 +102,6 @@ Free, like the rest of shoplit. Sign up at https://shoplit.in
 ```
 cd extension
 npm run build
-( cd dist && zip -rq ../shoplit-extension-v$(node -p "require('./manifest.json').version").zip . )
+( cd dist && zip -rq ../shoplit-extension-$(node -p "require('./manifest.json').version").zip . -x '*.DS_Store' )
 ```
-Bump `version` in `manifest.json` for each new store upload (Chrome rejects re-uploads with the same version).
+Bump `version` in `manifest.json` for each new store upload (Chrome rejects re-uploads with the same version). Also re-run the same `dist → web/public/shoplit-extension.zip` zip so the site's manual-download copy stays in sync.
