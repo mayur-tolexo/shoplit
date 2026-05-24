@@ -6,6 +6,7 @@ package ogfetch
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -19,9 +20,11 @@ import (
 )
 
 const (
-	userAgent    = "shoplit-ogfetch/1.0 (+https://github.com/mayur-tolexo/shoplit)"
+	// A real Chrome UA. Retailer bot-protection (Akamai etc.) rejects
+	// obviously-non-browser clients, so we present as Chrome on macOS.
+	userAgent    = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 	cacheTTL     = 24 * time.Hour
-	fetchTimeout = 5 * time.Second
+	fetchTimeout = 8 * time.Second
 )
 
 type Result struct {
@@ -39,7 +42,20 @@ type Fetcher struct {
 }
 
 func New(rc *rediscli.Client) *Fetcher {
-	return &Fetcher{rc: rc, client: &http.Client{Timeout: fetchTimeout}}
+	// Force HTTP/1.1. Several retailer CDNs (Myntra/Akamai) abruptly reset
+	// HTTP/2 streams for clients they flag as bots ("stream error ...
+	// INTERNAL_ERROR; received from peer"). HTTP/1.1 sidesteps that class of
+	// failure. TLSNextProto set to an empty (non-nil) map disables h2.
+	tr := &http.Transport{
+		ForceAttemptHTTP2: false,
+		TLSNextProto:      map[string]func(string, *tls.Conn) http.RoundTripper{},
+		MaxIdleConns:      10,
+		IdleConnTimeout:   30 * time.Second,
+	}
+	return &Fetcher{
+		rc:     rc,
+		client: &http.Client{Timeout: fetchTimeout, Transport: tr},
+	}
 }
 
 // Fetch GETs the URL and parses OG meta tags. Caches successful results in
@@ -53,8 +69,17 @@ func (f *Fetcher) Fetch(ctx context.Context, rawURL string) (Result, error) {
 	if err != nil {
 		return notOK(rawURL, "invalid URL"), nil
 	}
+	// Mimic a real browser request as closely as practical — bot-protection
+	// looks at these headers.
 	req.Header.Set("User-Agent", userAgent)
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,*/*;q=0.8")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+	// Deliberately NOT setting Accept-Encoding — letting Go's transport add it
+	// and transparently decompress the response (goquery needs plain HTML).
+	req.Header.Set("Sec-Fetch-Dest", "document")
+	req.Header.Set("Sec-Fetch-Mode", "navigate")
+	req.Header.Set("Sec-Fetch-Site", "none")
+	req.Header.Set("Upgrade-Insecure-Requests", "1")
 
 	resp, err := f.client.Do(req)
 	if err != nil {
