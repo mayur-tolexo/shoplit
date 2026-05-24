@@ -68,6 +68,9 @@ func New(rc *rediscli.Client) *Fetcher {
 // UI should prompt manual entry.
 func (f *Fetcher) Fetch(ctx context.Context, rawURL string) (Result, error) {
 	if cached, hit := f.cacheLookup(ctx, rawURL); hit {
+		// Clean defensively: entries cached before cleanTitle shipped still
+		// hold verbose titles for up to the TTL. cleanTitle is idempotent.
+		cached.Title = cleanTitle(cached.Title)
 		return cached, nil
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
