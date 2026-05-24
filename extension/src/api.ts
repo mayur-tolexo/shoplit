@@ -1,43 +1,35 @@
 // extension/src/api.ts
+// API access goes through the service worker, NOT a direct fetch. A content
+// script's fetch to shoplit.in is cross-origin from the page's origin and is
+// blocked by CORS; the service worker holds host_permissions for shoplit.in
+// and can call it freely. Popup and injected panel both route through here.
 import type { Cart, ExtractedProduct } from "./types";
 
-const BASE = "https://shoplit.in";
-
-async function authed<T>(token: string, path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(BASE + path, {
-    ...init,
-    headers: {
-      ...(init?.headers ?? {}),
-      Authorization: `Bearer ${token}`,
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-    },
+function send<T>(msg: unknown): Promise<T> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(msg, (resp: { ok: boolean; data?: T; error?: string }) => {
+      if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
+      if (!resp?.ok) return reject(new Error(resp?.error || "error"));
+      resolve(resp.data as T);
+    });
   });
-  if (res.status === 401) throw new Error("unauthorized");
-  if (!res.ok) throw new Error(`${path} → ${res.status}`);
-  if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
 }
 
-export async function listCarts(token: string): Promise<Cart[]> {
-  const carts = await authed<{ id: string; title: string }[]>(token, "/api/v1/carts");
-  return carts.map((c) => ({ id: c.id, title: c.title }));
+export async function listCarts(): Promise<Cart[]> {
+  return send<Cart[]>({ type: "listCarts" });
 }
 
-export async function addProduct(
-  token: string,
-  cartId: string,
-  p: ExtractedProduct,
-  note: string,
-): Promise<void> {
-  await authed<unknown>(token, `/api/v1/carts/${cartId}/items`, {
-    method: "POST",
-    body: JSON.stringify({
+export async function addProduct(cartId: string, p: ExtractedProduct, note: string): Promise<void> {
+  await send({
+    type: "addProduct",
+    cartId,
+    body: {
       title: p.title,
       image_url: p.imageUrl,
       price_text: p.priceText,
       original_url: p.url,
       retailer: p.retailer,
       note,
-    }),
+    },
   });
 }

@@ -15,6 +15,29 @@ function meta(doc: Document, prop: string): string {
   return el?.getAttribute("content")?.trim() || "";
 }
 
+// isProductPage is a STRICT check for whether the page is a single product
+// (not a category/listing/search page). Used to decide whether to auto-inject
+// the on-page button. Signals, any of: JSON-LD Product, og:type=product, or a
+// known product-URL path pattern.
+export function isProductPage(doc: Document): boolean {
+  for (const b of Array.from(doc.querySelectorAll('script[type="application/ld+json"]'))) {
+    try {
+      const data = JSON.parse(b.textContent || "");
+      const items = Array.isArray(data) ? data : data["@graph"] ? data["@graph"] : [data];
+      for (const it of items) {
+        const t = it && it["@type"];
+        if (t === "Product" || (Array.isArray(t) && t.includes("Product"))) return true;
+      }
+    } catch {
+      /* skip malformed JSON-LD */
+    }
+  }
+  if (meta(doc, "og:type").toLowerCase().includes("product")) return true;
+  // Product-page URL patterns: Amazon /dp/, Nykaa/Flipkart/AJIO /p/, Myntra /buy.
+  const url = doc.location?.href || "";
+  return /\/dp\/|\/p\/[^/]|\/buy(\/|\?|#|$)|\/\d+\/buy/.test(url);
+}
+
 function priceStr(amount?: string | number): string {
   if (amount === undefined || amount === null || `${amount}` === "") return "";
   const n = `${amount}`.replace(/[^\d.]/g, "");
