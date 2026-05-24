@@ -7,6 +7,7 @@ import type { Cart, User } from "@/lib/types";
 import { getCurrentUser, listMyCarts } from "@/lib/api-client";
 import { CartCard } from "@/components/cart-card";
 import { AnimatedNumber } from "@/components/animated-number";
+import { InstallNudge } from "@/components/install-nudge";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,8 @@ export default async function DashboardPage() {
           </h1>
         </div>
       </div>
+
+      <InstallNudge />
 
       {isEmpty ? (
         <FirstTimeOnboarding firstName={firstName} />
