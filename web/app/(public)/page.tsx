@@ -201,6 +201,12 @@ export default async function LandingPage() {
             >
               Start free <ArrowRight size={16} />
             </Link>
+            <p className="mt-6 text-sm text-muted">
+              Curious what&apos;s coming?{" "}
+              <Link href="/roadmap" className="text-accent underline underline-offset-4 hover:opacity-80">
+                See the roadmap
+              </Link>
+            </p>
           </div>
         </section>
       </main>
