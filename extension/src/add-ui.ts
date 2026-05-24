@@ -36,7 +36,7 @@ export async function renderAddUI({ root, product, onConnectNeeded }: RenderOpts
     return;
   }
 
-  const options = carts.map((c) => `<option value="${c.id}">${escapeHtml(c.title)}</option>`).join("");
+  const options = carts.map((c) => `<option value="${escapeAttr(c.id)}">${escapeHtml(c.title)}</option>`).join("");
   root.innerHTML = `
     <div class="sl-pad">
       <div class="sl-row">
@@ -44,6 +44,7 @@ export async function renderAddUI({ root, product, onConnectNeeded }: RenderOpts
         <input id="sl-title" class="sl-input" value="${escapeAttr(product.title)}"/>
       </div>
       <input id="sl-price" class="sl-input" value="${escapeAttr(product.priceText)}" placeholder="₹ price"/>
+      <input id="sl-image" class="sl-input" value="${escapeAttr(product.imageUrl)}" placeholder="Image URL"/>
       <select id="sl-cart" class="sl-input">${options}</select>
       <input id="sl-note" class="sl-input" placeholder="Note (optional)"/>
       <button id="sl-add" class="sl-btn">＋ Add to cart</button>
@@ -62,6 +63,7 @@ export async function renderAddUI({ root, product, onConnectNeeded }: RenderOpts
           ...product,
           title: $<HTMLInputElement>("#sl-title").value.trim(),
           priceText: $<HTMLInputElement>("#sl-price").value.trim(),
+          imageUrl: $<HTMLInputElement>("#sl-image").value.trim(),
         },
         $<HTMLInputElement>("#sl-note").value.trim(),
       );

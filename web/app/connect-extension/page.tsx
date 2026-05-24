@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { mintExtensionToken } from "@/lib/api-client";
 
 // The published/dev extension ID. For unpacked dev, set this to the ID Chrome
@@ -12,6 +13,7 @@ declare global {
   interface Window {
     chrome?: {
       runtime?: {
+        lastError?: { message?: string };
         sendMessage?: (id: string, msg: unknown, cb?: (resp: unknown) => void) => void;
       };
     };
@@ -19,6 +21,7 @@ declare global {
 }
 
 export default function ConnectExtensionPage() {
+  const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [status, setStatus] = useState<"working" | "handed" | "manual" | "error">("working");
   const [copied, setCopied] = useState(false);
@@ -33,8 +36,11 @@ export default function ConnectExtensionPage() {
         const send = window.chrome?.runtime?.sendMessage;
         if (EXTENSION_ID && send) {
           try {
-            send(EXTENSION_ID, { type: "shoplit-token", token: t }, () => {});
-            setStatus("handed");
+            send(EXTENSION_ID, { type: "shoplit-token", token: t }, (resp: unknown) => {
+              const err = window.chrome?.runtime?.lastError;
+              if (err || !(resp as { ok?: boolean })?.ok) setStatus("manual");
+              else setStatus("handed");
+            });
             return;
           } catch {
             /* fall through to manual */
@@ -42,11 +48,16 @@ export default function ConnectExtensionPage() {
         }
         setStatus("manual");
       })
-      .catch(() => alive && setStatus("error"));
+      .catch((e) => {
+        if (!alive) return;
+        const status = (e as { status?: number })?.status;
+        if (status === 401) { router.push("/login"); return; }
+        setStatus("error");
+      });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [router]);
 
   const copy = async () => {
     if (!token) return;
