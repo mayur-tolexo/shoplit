@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Check, Link2, Plus } from "lucide-react";
 import { listMyCoverImages } from "@/lib/api-client";
 import { CartCover } from "@/components/cart-cover";
+import { ImageUploadButton } from "@/components/image-upload-button";
 
 interface CoverPickerProps {
   value: string;            // current cover URL ("" = branded gradient)
@@ -91,9 +92,12 @@ export function CoverPicker({ value, accentHex, title, onChange }: CoverPickerPr
         </div>
       )}
 
-      {/* Paste a custom URL */}
+      {/* Upload a photo (great on mobile) or paste a custom URL */}
       <div>
-        <p className="text-xs uppercase tracking-widest text-muted mb-2">Or paste an image URL</p>
+        <p className="text-xs uppercase tracking-widest text-muted mb-2">Or upload a photo</p>
+        <ImageUploadButton onUploaded={onChange} label="📷 Upload a cover photo" />
+
+        <p className="text-xs uppercase tracking-widest text-muted mt-4 mb-2">Or paste an image URL</p>
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Link2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden />

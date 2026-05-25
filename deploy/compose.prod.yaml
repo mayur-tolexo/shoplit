@@ -79,8 +79,12 @@ services:
       SHOPLIT_CORS_ORIGIN: ${PUBLIC_URL}
       SHOPLIT_FRONTEND_URL: ${PUBLIC_URL}
       SHOPLIT_UPLOAD_DIR: /data/uploads
+      # When set, uploads go to S3 instead of the local volume. Credentials come
+      # from the EC2 instance role (no keys). Empty → local-disk fallback.
+      SHOPLIT_S3_BUCKET: ${SHOPLIT_S3_BUCKET:-}
+      AWS_REGION: ${AWS_REGION:-ap-southeast-2}
     volumes:
-      # Persist uploaded images across container rebuilds/redeploys.
+      # Persist uploaded images across container rebuilds/redeploys (disk mode).
       - uploads_data:/data/uploads
 
   shoplit-redirect:

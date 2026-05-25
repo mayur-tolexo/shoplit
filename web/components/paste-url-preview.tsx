@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { Loader2, Link2, Plus } from "lucide-react";
-import { toast } from "sonner";
-import { fetchOG, uploadImage } from "@/lib/api-client";
+import { fetchOG } from "@/lib/api-client";
 import { parseShare } from "@/lib/parse-share";
 import { richClipboardData } from "@/lib/clipboard";
+import { ImageUploadButton } from "./image-upload-button";
 import type { Product, Retailer } from "@/lib/types";
 import { RetailerIcon, retailerLabel } from "./retailer-icon";
 
@@ -32,21 +32,6 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
   const [priceText, setPriceText] = useState("");
   const [note, setNote] = useState("");
   const [retailer, setRetailer] = useState<Retailer>("other");
-  const [uploading, setUploading] = useState(false);
-
-  const onPickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setUploading(true);
-    try {
-      setImageUrl(await uploadImage(file));
-    } catch {
-      toast.error("Couldn't upload that photo — try a smaller image.");
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const reset = () => {
     setRawInput("");
@@ -196,10 +181,11 @@ export function PasteUrlPreview({ onResolved }: PasteUrlPreviewProps) {
                   placeholder="Image URL"
                   className="flex-1 rounded-md border border-rule bg-cream px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 />
-                <label className="shrink-0 inline-flex items-center rounded-md border border-rule bg-cream px-3 py-2 text-sm font-medium cursor-pointer hover:bg-paper whitespace-nowrap">
-                  {uploading ? "…" : "📷"}
-                  <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={onPickPhoto} />
-                </label>
+                <ImageUploadButton
+                  onUploaded={setImageUrl}
+                  label="📷"
+                  className="shrink-0 inline-flex items-center rounded-md border border-rule bg-cream px-3 py-2 text-sm font-medium cursor-pointer hover:bg-paper whitespace-nowrap"
+                />
               </div>
             </div>
           </div>

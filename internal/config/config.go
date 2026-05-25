@@ -69,8 +69,14 @@ type Config struct {
 	FrontendURL string `env:"SHOPLIT_FRONTEND_URL" envDefault:"http://localhost:3000"`
 
 	// Directory where uploaded product/cover images are written and served
-	// from (under /uploads). In prod this is a persistent Docker volume.
+	// from (under /uploads) when S3 is not configured (local dev fallback).
 	UploadDir string `env:"SHOPLIT_UPLOAD_DIR" envDefault:"./uploads"`
+
+	// When set, uploaded images go to this S3 bucket (served via its public
+	// object URL) instead of local disk. AWSRegion is the bucket's region;
+	// credentials come from the default AWS chain (EC2 instance role in prod).
+	S3Bucket  string `env:"SHOPLIT_S3_BUCKET"`
+	AWSRegion string `env:"AWS_REGION" envDefault:"ap-southeast-2"`
 }
 
 // GoogleOAuthConfigured returns true only when both client id and secret are set.

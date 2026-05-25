@@ -31,6 +31,7 @@ import { PasteUrlPreview } from "@/components/paste-url-preview";
 import { ShareSheet } from "@/components/share-sheet";
 import { CartCover } from "@/components/cart-cover";
 import { CoverPicker } from "@/components/cover-picker";
+import { ImageUploadButton } from "@/components/image-upload-button";
 import {
   Dialog,
   DialogClose,
@@ -453,6 +454,11 @@ function SortableProductRow({
                 onChange={(e) => setImageUrl(e.target.value)}
                 placeholder="Image URL"
                 className="flex-1 min-w-0 rounded-md border border-rule bg-cream px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              <ImageUploadButton
+                onUploaded={setImageUrl}
+                label="📷"
+                className="shrink-0 inline-flex items-center rounded-md border border-rule bg-cream px-2.5 py-1.5 text-sm font-medium cursor-pointer hover:bg-paper"
               />
             </div>
             <input

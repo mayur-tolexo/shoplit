@@ -120,9 +120,19 @@ func run() error {
 		r.Post("/feedback", fb.Handler())
 	})
 
-	// Public, read-only serving of uploaded images. Files are written by the
-	// authenticated upload endpoint below; here anyone can fetch them so they
-	// render on public cart pages.
+	// Image upload store: S3 in prod (when a bucket is configured), local disk
+	// otherwise (dev). The disk file-server is always mounted so dev URLs work;
+	// in prod the returned URLs point at S3 and this route simply goes unused.
+	var imageStore uploads.Store = uploads.NewDiskStore(cfg.UploadDir)
+	if cfg.S3Bucket != "" {
+		s3store, err := uploads.NewS3Store(ctx, cfg.S3Bucket, cfg.AWSRegion)
+		if err != nil {
+			slog.Error("S3 store init failed; falling back to disk", "err", err)
+		} else {
+			imageStore = s3store
+			slog.Info("image uploads → S3", "bucket", cfg.S3Bucket, "region", cfg.AWSRegion)
+		}
+	}
 	if err := os.MkdirAll(cfg.UploadDir, 0o755); err != nil {
 		slog.Warn("could not create upload dir", "dir", cfg.UploadDir, "err", err)
 	}
@@ -133,7 +143,7 @@ func run() error {
 		r.Use(sm.RequireUser())
 		r.Post("/extension/token", exttoken.MintHandler(q))
 		r.Get("/feedback", fb.ListHandler())
-		r.Post("/uploads", uploads.Handler(cfg.UploadDir))
+		r.Post("/uploads", uploads.Handler(imageStore))
 		carts.RegisterRoutes(r, svc, fetcher)
 	})
 
