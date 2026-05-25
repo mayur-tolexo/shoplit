@@ -12,8 +12,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/mayur-tolexo/shoplit/internal/auth"
-	"github.com/mayur-tolexo/shoplit/internal/mailer"
 	sqlcgen "github.com/mayur-tolexo/shoplit/internal/db/sqlc"
+	"github.com/mayur-tolexo/shoplit/internal/mailer"
 )
 
 // Mailer is the interface used to send notification emails.
