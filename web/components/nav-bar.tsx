@@ -45,10 +45,12 @@ export function NavBar({ variant = "marketing", user }: NavBarProps) {
         <Logo href={variant === "app" ? "/dashboard" : "/"} />
         {variant === "marketing" && (
           <div className="flex items-center gap-4 text-sm">
-            <Link href="/discover" className="text-muted hover:text-ink transition-colors">
+            {/* Secondary links: desktop only on mobile the tab bar (signed in)
+                or just the trailing pill (signed out) carries nav. */}
+            <Link href="/discover" className="hidden sm:inline-flex text-muted hover:text-ink transition-colors">
               Discover
             </Link>
-            <Link href="/feedback" className="text-muted hover:text-ink transition-colors">
+            <Link href="/feedback" className="hidden sm:inline-flex text-muted hover:text-ink transition-colors">
               Feedback
             </Link>
             {user ? (
@@ -65,7 +67,9 @@ export function NavBar({ variant = "marketing", user }: NavBarProps) {
               </Link>
             ) : (
               <>
-                <Link href="/login" className="text-muted hover:text-ink transition-colors">
+                {/* "Sign in" is desktop-only; on mobile the "Start free" pill
+                    (same /login destination) is the single trailing element. */}
+                <Link href="/login" className="hidden sm:inline-flex text-muted hover:text-ink transition-colors">
                   Sign in
                 </Link>
                 <Link
