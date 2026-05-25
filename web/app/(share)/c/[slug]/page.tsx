@@ -7,6 +7,7 @@ import { ProductCard } from "@/components/product-card";
 import { RevealOnScroll } from "@/components/reveal-on-scroll";
 import { StickyShareBar } from "@/components/sticky-share-bar";
 import { CartCover } from "@/components/cart-cover";
+import { CreateYourOwnBanner } from "@/components/create-your-own-banner";
 import { linkify } from "@/lib/linkify";
 
 export const dynamic = "force-dynamic";
@@ -77,6 +78,9 @@ export default async function PublicCartPage({ params }: { params: { slug: strin
           </div>
         )}
       </section>
+
+      {/* ACQUISITION CTA — convert viewers into shoplit signups. */}
+      <CreateYourOwnBanner />
 
       {/* FOOTER (extra bottom padding so it isn't covered by the sticky share bar) */}
       <footer className="border-t border-rule mt-16 pb-24">

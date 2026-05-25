@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { SwRegister } from "@/components/sw-register";
-import { MobileTabBar } from "@/components/mobile-tab-bar";
+import { AppFrame } from "@/components/app-frame";
 import { getCurrentUser } from "@/lib/api-client";
 
 const fraunces = Fraunces({
@@ -46,16 +46,16 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Resolve the viewer once, globally, so the mobile tab bar can render across
-  // the primary surfaces (Carts/Discover/Feed/Add). Fail open: a logged-out
-  // visitor (or any lookup error) yields null so public pages never error.
+  // Resolve the viewer once, globally, so AppFrame's persistent nav surfaces
+  // (desktop rail + mobile tab bar) can render across the primary surfaces
+  // (Carts/Discover/Feed/Add). Fail open: a logged-out visitor (or any lookup
+  // error) yields null so public pages never error.
   const user = await getCurrentUser({ cookie: cookies().toString() }).catch(() => null);
 
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable} ${notoDeva.variable} ${jetbrains.variable}`}>
       <body>
-        {children}
-        <MobileTabBar user={user} />
+        <AppFrame user={user}>{children}</AppFrame>
         <Toaster position="bottom-center" richColors />
         <SwRegister />
       </body>
