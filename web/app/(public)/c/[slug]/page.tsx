@@ -55,8 +55,26 @@ export default async function PublicCartPage({ params }: { params: { slug: strin
         </div>
       </section>
 
+      {/* CREATOR HEADER */}
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 pt-6 flex items-center gap-3">
+        <Image
+          src={cart.ownerAvatarUrl}
+          alt=""
+          width={44}
+          height={44}
+          className="rounded-full border border-rule shrink-0"
+          unoptimized
+        />
+        <div className="min-w-0">
+          <p className="font-medium leading-tight truncate">@{cart.ownerHandle}</p>
+          <p className="text-sm text-muted">
+            {cart.products.length} {cart.products.length === 1 ? "product" : "products"}
+          </p>
+        </div>
+      </div>
+
       {/* PRODUCTS */}
-      <section className="mx-auto max-w-4xl px-4 sm:px-6 py-12">
+      <section className="mx-auto max-w-4xl px-4 sm:px-6 pt-8 pb-12">
         {cart.products.length === 0 ? (
           <p className="text-center text-muted py-16">This cart is still being curated. Check back soon.</p>
         ) : (
