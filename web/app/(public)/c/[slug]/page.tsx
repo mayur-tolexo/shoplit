@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { getCartBySlug } from "@/lib/api-client";
 import { ProductCard } from "@/components/product-card";
 import { RevealOnScroll } from "@/components/reveal-on-scroll";
@@ -11,7 +12,7 @@ import { linkify } from "@/lib/linkify";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const cart = await getCartBySlug(params.slug);
+  const cart = await getCartBySlug(params.slug, { cookie: cookies().toString() });
   if (!cart) return { title: "Not found · shoplit" };
   return {
     title: `${cart.title} · ${cart.ownerDisplayName}`,
@@ -28,7 +29,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 export default async function PublicCartPage({ params }: { params: { slug: string } }) {
-  const cart = await getCartBySlug(params.slug);
+  const cart = await getCartBySlug(params.slug, { cookie: cookies().toString() });
   if (!cart) notFound();
   return (
     <div style={{ ["--accent" as string]: cart.accentHex } as React.CSSProperties}>

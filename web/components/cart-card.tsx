@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, Eye, MousePointerClick, Share2 } from "lucide-react";
+import { Check, Eye, MousePointerClick, Share2, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { Cart } from "@/lib/types";
 import { CartCover } from "@/components/cart-cover";
@@ -53,12 +53,15 @@ export function CartCard({ cart, href, showCopy = true }: CartCardProps) {
       <div className="p-4">
         <h3 className="font-serif text-lg mb-2 line-clamp-2">{cart.title}</h3>
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3 text-xs text-muted">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
             <span className="inline-flex items-center gap-1">
               <Eye size={13} /> {cart.viewsLast7d.toLocaleString()}
             </span>
             <span className="inline-flex items-center gap-1">
               <MousePointerClick size={13} /> {cart.clicksLast7d.toLocaleString()}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Users size={13} /> {cart.reachLast7d.toLocaleString()}
             </span>
             <span className="text-muted/70">
               · {cart.products.length} {cart.products.length === 1 ? "item" : "items"}

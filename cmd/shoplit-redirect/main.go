@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/mayur-tolexo/shoplit/internal/auth"
 	"github.com/mayur-tolexo/shoplit/internal/config"
 	"github.com/mayur-tolexo/shoplit/internal/db"
 	sqlcgen "github.com/mayur-tolexo/shoplit/internal/db/sqlc"
@@ -56,7 +57,8 @@ func run() error {
 	defer rc.Close()
 
 	q := sqlcgen.New(pool)
-	svc := redirect.NewService(q)
+	sm := auth.NewSessionManager(cfg.SessionSecret).WithSecure(cfg.CookieSecure)
+	svc := redirect.NewService(q, sm, cfg.SessionSecret)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, middleware.Recoverer)

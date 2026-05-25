@@ -48,7 +48,7 @@ func setup(t *testing.T) (http.Handler, string) {
 		carts.RegisterRoutes(r, svc, fetcher)
 	})
 	r.Route("/api/public", func(r chi.Router) {
-		publicapi.RegisterRoutes(r, svc)
+		publicapi.RegisterRoutes(r, svc, nil)
 	})
 
 	body := bytes.NewBufferString(`{"title":"Public Test Cart"}`)

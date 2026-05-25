@@ -55,6 +55,7 @@ type ClickEvent struct {
 	CountryCode   pgtype.Text        `json:"country_code"`
 	UserAgentKind pgtype.Text        `json:"user_agent_kind"`
 	RefererHost   pgtype.Text        `json:"referer_host"`
+	VisitorHash   pgtype.Text        `json:"visitor_hash"`
 }
 
 type ExtensionToken struct {

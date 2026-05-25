@@ -60,12 +60,14 @@ func (s *Service) ListMyCarts(ctx context.Context, userID int64) ([]sqlcgen.Cart
 	return s.q.ListCartsByUser(ctx, userID)
 }
 
-// CartStats7d returns the cart's view and click counts over the last 7 days.
+// CartStats7d returns the cart's view, click, and reach counts over the last 7 days.
 // Best-effort: any read error yields 0 rather than failing the request.
-func (s *Service) CartStats7d(ctx context.Context, cartID int64) (views, clicks int64) {
+func (s *Service) CartStats7d(ctx context.Context, cartID int64) (views, clicks, reach int64) {
 	views, _ = s.q.CartViews7d(ctx, cartID)
-	clicks, _ = s.q.CartClicks7d(ctx, pgtype.Int8{Int64: cartID, Valid: true})
-	return views, clicks
+	cid := pgtype.Int8{Int64: cartID, Valid: true}
+	clicks, _ = s.q.CartClicks7d(ctx, cid)
+	reach, _ = s.q.CartReach7d(ctx, cid)
+	return views, clicks, reach
 }
 
 // ListMyCoverImages returns the distinct cover image URLs the user has used
@@ -101,8 +103,9 @@ func (s *Service) GetCart(ctx context.Context, userID, cartID int64) (sqlcgen.Ca
 }
 
 // GetPublicCart resolves a public cart by slug, returning the cart, its items,
-// and the owning user. It also bumps the view counter in the background.
-func (s *Service) GetPublicCart(ctx context.Context, slug string) (sqlcgen.Cart, []sqlcgen.ListCartItemsRow, sqlcgen.User, error) {
+// and the owning user. It also bumps the view counter in the background,
+// unless the viewer is the cart owner (to avoid counting self-views).
+func (s *Service) GetPublicCart(ctx context.Context, slug string, viewerUserID int64) (sqlcgen.Cart, []sqlcgen.ListCartItemsRow, sqlcgen.User, error) {
 	cart, err := s.q.GetCartBySlug(ctx, slug)
 	if err != nil {
 		return sqlcgen.Cart{}, nil, sqlcgen.User{}, err
@@ -115,10 +118,13 @@ func (s *Service) GetPublicCart(ctx context.Context, slug string) (sqlcgen.Cart,
 	if err != nil {
 		return sqlcgen.Cart{}, nil, sqlcgen.User{}, err
 	}
-	// Fire-and-forget view bump (best effort).
-	go func() {
-		_ = s.q.BumpCartViewsDaily(context.Background(), cart.ID)
-	}()
+	// Fire-and-forget view bump (best effort) — but never count the owner's
+	// own views of their own cart.
+	if viewerUserID != cart.UserID {
+		go func() {
+			_ = s.q.BumpCartViewsDaily(context.Background(), cart.ID)
+		}()
+	}
 	return cart, items, user, nil
 }
 

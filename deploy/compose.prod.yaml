@@ -104,6 +104,8 @@ services:
       SHOPLIT_DB_DSN: postgres://shoplit:${POSTGRES_PASSWORD}@postgres:5432/shoplit?sslmode=disable
       SHOPLIT_DB_DSN_READONLY: postgres://shoplit:${POSTGRES_PASSWORD}@postgres:5432/shoplit?sslmode=disable
       SHOPLIT_REDIS_URL: redis://redis:6379/0
+      SHOPLIT_SESSION_SECRET: ${SHOPLIT_SESSION_SECRET}
+      SHOPLIT_COOKIE_SECURE: "true"
 
   shoplit-web:
     build:

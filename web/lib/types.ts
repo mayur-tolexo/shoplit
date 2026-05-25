@@ -41,6 +41,7 @@ export interface Cart {
   products: Product[];
   viewsLast7d: number;
   clicksLast7d: number;
+  reachLast7d: number;
   createdAt: string;       // ISO
   updatedAt: string;       // ISO
 }

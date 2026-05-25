@@ -22,6 +22,7 @@ type CartJSON struct {
 	Products         []ProductJSON `json:"products"`
 	ViewsLast7d      int           `json:"viewsLast7d"`
 	ClicksLast7d     int           `json:"clicksLast7d"`
+	ReachLast7d      int           `json:"reachLast7d"`
 	CreatedAt        string        `json:"createdAt"`
 	UpdatedAt        string        `json:"updatedAt"`
 }
@@ -57,9 +58,9 @@ func MarshalUser(u sqlcgen.User) UserJSON {
 }
 
 // MarshalCart converts a sqlc Cart, its owner, and item rows into CartJSON.
-// viewsLast7d/clicksLast7d are the analytics counts (0 where not needed, e.g.
+// viewsLast7d/clicksLast7d/reachLast7d are the analytics counts (0 where not needed, e.g.
 // the public page that doesn't display them).
-func MarshalCart(c sqlcgen.Cart, owner sqlcgen.User, items []sqlcgen.ListCartItemsRow, viewsLast7d, clicksLast7d int) CartJSON {
+func MarshalCart(c sqlcgen.Cart, owner sqlcgen.User, items []sqlcgen.ListCartItemsRow, viewsLast7d, clicksLast7d, reachLast7d int) CartJSON {
 	out := CartJSON{
 		ID:               intStr(c.ID),
 		Slug:             c.Slug,
@@ -72,6 +73,7 @@ func MarshalCart(c sqlcgen.Cart, owner sqlcgen.User, items []sqlcgen.ListCartIte
 		AccentHex:        "#B5532A",
 		ViewsLast7d:      viewsLast7d,
 		ClicksLast7d:     clicksLast7d,
+		ReachLast7d:      reachLast7d,
 		CreatedAt:        c.CreatedAt.Time.Format(time.RFC3339),
 		UpdatedAt:        c.UpdatedAt.Time.Format(time.RFC3339),
 	}

@@ -102,6 +102,20 @@ func (q *Queries) CartClicks7d(ctx context.Context, cartID pgtype.Int8) (int64, 
 	return clicks, err
 }
 
+const cartReach7d = `-- name: CartReach7d :one
+SELECT COUNT(DISTINCT visitor_hash)::bigint AS reach
+FROM click_events ce
+JOIN links l ON ce.link_id = l.id
+WHERE l.cart_id = $1 AND ce.occurred_at >= current_date - 6 AND ce.visitor_hash IS NOT NULL
+`
+
+func (q *Queries) CartReach7d(ctx context.Context, cartID pgtype.Int8) (int64, error) {
+	row := q.db.QueryRow(ctx, cartReach7d, cartID)
+	var reach int64
+	err := row.Scan(&reach)
+	return reach, err
+}
+
 const cartViews7d = `-- name: CartViews7d :one
 
 SELECT COALESCE(SUM(views), 0)::bigint AS views
@@ -346,8 +360,8 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 
 const insertClickEvent = `-- name: InsertClickEvent :exec
 
-INSERT INTO click_events (link_id, occurred_at, country_code, user_agent_kind, referer_host)
-VALUES ($1, now(), $2, $3, $4)
+INSERT INTO click_events (link_id, occurred_at, country_code, user_agent_kind, referer_host, visitor_hash)
+VALUES ($1, now(), $2, $3, $4, $5)
 `
 
 type InsertClickEventParams struct {
@@ -355,6 +369,7 @@ type InsertClickEventParams struct {
 	CountryCode   pgtype.Text `json:"country_code"`
 	UserAgentKind pgtype.Text `json:"user_agent_kind"`
 	RefererHost   pgtype.Text `json:"referer_host"`
+	VisitorHash   pgtype.Text `json:"visitor_hash"`
 }
 
 // ─── ANALYTICS (writes) ────────────────────────────────────────────────────
@@ -364,6 +379,7 @@ func (q *Queries) InsertClickEvent(ctx context.Context, arg InsertClickEventPara
 		arg.CountryCode,
 		arg.UserAgentKind,
 		arg.RefererHost,
+		arg.VisitorHash,
 	)
 	return err
 }
