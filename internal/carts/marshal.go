@@ -46,6 +46,9 @@ type UserJSON struct {
 	Handle      string `json:"handle"`
 	DisplayName string `json:"displayName"`
 	AvatarURL   string `json:"avatarUrl"`
+	// IsAdmin defaults to false and is only set by the /me handler so the UI can
+	// reveal the admin nav entry. The API enforcement is the admin 403.
+	IsAdmin bool `json:"isAdmin"`
 }
 
 // MarshalUser converts a sqlc User into the frontend UserJSON shape.

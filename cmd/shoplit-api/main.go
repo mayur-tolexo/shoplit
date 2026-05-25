@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"github.com/mayur-tolexo/shoplit/internal/admin"
 	"github.com/mayur-tolexo/shoplit/internal/auth"
 	"github.com/mayur-tolexo/shoplit/internal/carts"
 	"github.com/mayur-tolexo/shoplit/internal/config"
@@ -79,6 +80,14 @@ func run() error {
 		}
 	}
 	fb := feedback.NewService(q, mlr, cfg.FeedbackEmail, adminIDs)
+
+	// Admin set + predicate, reused by /me (cosmetic UI gate) and the admin
+	// package's RequireAdmin middleware (the real enforcement).
+	adminSet := make(map[int64]bool, len(adminIDs))
+	for _, id := range adminIDs {
+		adminSet[id] = true
+	}
+	isAdmin := func(id int64) bool { return adminSet[id] }
 
 	sm := auth.NewSessionManager(cfg.SessionSecret).
 		WithSecure(cfg.CookieSecure).
@@ -147,8 +156,9 @@ func run() error {
 		r.Post("/extension/token", exttoken.MintHandler(q))
 		r.Get("/feedback", fb.ListHandler())
 		r.Post("/uploads", uploads.Handler(imageStore, uploads.NewRedisLimiter(rc, 30, time.Hour)))
-		carts.RegisterRoutes(r, svc, fetcher)
+		carts.RegisterRoutes(r, svc, fetcher, isAdmin)
 		creators.RegisterRoutes(r, creatorsSvc)
+		admin.RegisterRoutes(r, admin.NewService(q), isAdmin)
 	})
 
 	srv := &http.Server{

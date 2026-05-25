@@ -19,6 +19,15 @@ type Querier interface {
 	AccountDailyViews(ctx context.Context, userID int64) ([]AccountDailyViewsRow, error)
 	// ─── CART ITEMS ────────────────────────────────────────────────────────────
 	AddCartItem(ctx context.Context, arg AddCartItemParams) (CartItem, error)
+	// All users (newest first, capped) with per-user cart/follower/following counts
+	// for the admin user table.
+	AdminListUsers(ctx context.Context) ([]AdminListUsersRow, error)
+	// Platform-wide totals for the read-only admin overview. privateCarts is
+	// derived in Go (carts - publicCarts) so this stays a single round-trip.
+	AdminOverview(ctx context.Context) (AdminOverviewRow, error)
+	// One user's non-archived carts (newest first) with product count and 7-day
+	// views/clicks, for the admin per-user drill-down.
+	AdminUserCarts(ctx context.Context, userID int64) ([]AdminUserCartsRow, error)
 	ArchiveCart(ctx context.Context, id int64) error
 	BumpCartViewsDaily(ctx context.Context, cartID int64) error
 	BumpClickDaily(ctx context.Context, linkID int64) error

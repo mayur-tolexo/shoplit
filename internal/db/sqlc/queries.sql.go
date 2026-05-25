@@ -130,6 +130,152 @@ func (q *Queries) AddCartItem(ctx context.Context, arg AddCartItemParams) (CartI
 	return i, err
 }
 
+const adminListUsers = `-- name: AdminListUsers :many
+SELECT
+  u.id, u.handle, u.display_name, u.avatar_url, u.email, u.created_at,
+  (SELECT COUNT(*) FROM carts c   WHERE c.user_id = u.id AND c.archived_at IS NULL)::bigint AS cart_count,
+  (SELECT COUNT(*) FROM follows f WHERE f.creator_id = u.id)::bigint  AS follower_count,
+  (SELECT COUNT(*) FROM follows f WHERE f.follower_id = u.id)::bigint AS following_count
+FROM users u
+ORDER BY u.created_at DESC
+LIMIT 500
+`
+
+type AdminListUsersRow struct {
+	ID             int64              `json:"id"`
+	Handle         pgtype.Text        `json:"handle"`
+	DisplayName    string             `json:"display_name"`
+	AvatarUrl      pgtype.Text        `json:"avatar_url"`
+	Email          pgtype.Text        `json:"email"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	CartCount      int64              `json:"cart_count"`
+	FollowerCount  int64              `json:"follower_count"`
+	FollowingCount int64              `json:"following_count"`
+}
+
+// All users (newest first, capped) with per-user cart/follower/following counts
+// for the admin user table.
+func (q *Queries) AdminListUsers(ctx context.Context) ([]AdminListUsersRow, error) {
+	rows, err := q.db.Query(ctx, adminListUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AdminListUsersRow
+	for rows.Next() {
+		var i AdminListUsersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Handle,
+			&i.DisplayName,
+			&i.AvatarUrl,
+			&i.Email,
+			&i.CreatedAt,
+			&i.CartCount,
+			&i.FollowerCount,
+			&i.FollowingCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const adminOverview = `-- name: AdminOverview :one
+SELECT
+  (SELECT COUNT(*) FROM users)::bigint AS users,
+  (SELECT COUNT(*) FROM carts WHERE archived_at IS NULL)::bigint AS carts,
+  (SELECT COUNT(*) FROM carts WHERE archived_at IS NULL AND visibility = 'public')::bigint AS public_carts,
+  (SELECT COUNT(*) FROM cart_items)::bigint AS products,
+  (SELECT COUNT(*) FROM follows)::bigint AS follows,
+  (SELECT COALESCE(SUM(views), 0) FROM cart_views_daily WHERE day >= current_date - 6)::bigint AS views_7d,
+  (SELECT COALESCE(SUM(clicks), 0) FROM click_daily WHERE day >= current_date - 6)::bigint AS clicks_7d
+`
+
+type AdminOverviewRow struct {
+	Users       int64 `json:"users"`
+	Carts       int64 `json:"carts"`
+	PublicCarts int64 `json:"public_carts"`
+	Products    int64 `json:"products"`
+	Follows     int64 `json:"follows"`
+	Views7d     int64 `json:"views_7d"`
+	Clicks7d    int64 `json:"clicks_7d"`
+}
+
+// Platform-wide totals for the read-only admin overview. privateCarts is
+// derived in Go (carts - publicCarts) so this stays a single round-trip.
+func (q *Queries) AdminOverview(ctx context.Context) (AdminOverviewRow, error) {
+	row := q.db.QueryRow(ctx, adminOverview)
+	var i AdminOverviewRow
+	err := row.Scan(
+		&i.Users,
+		&i.Carts,
+		&i.PublicCarts,
+		&i.Products,
+		&i.Follows,
+		&i.Views7d,
+		&i.Clicks7d,
+	)
+	return i, err
+}
+
+const adminUserCarts = `-- name: AdminUserCarts :many
+SELECT
+  c.id, c.slug, c.title, c.visibility, c.created_at,
+  (SELECT COUNT(*) FROM cart_items ci WHERE ci.cart_id = c.id)::bigint AS product_count,
+  (SELECT COALESCE(SUM(cv.views), 0)  FROM cart_views_daily cv WHERE cv.cart_id = c.id AND cv.day >= current_date - 6)::bigint AS views_7d,
+  (SELECT COALESCE(SUM(cd.clicks), 0) FROM click_daily cd JOIN links l ON cd.link_id = l.id WHERE l.cart_id = c.id AND cd.day >= current_date - 6)::bigint AS clicks_7d
+FROM carts c
+WHERE c.user_id = $1 AND c.archived_at IS NULL
+ORDER BY c.created_at DESC
+`
+
+type AdminUserCartsRow struct {
+	ID           int64              `json:"id"`
+	Slug         string             `json:"slug"`
+	Title        string             `json:"title"`
+	Visibility   string             `json:"visibility"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	ProductCount int64              `json:"product_count"`
+	Views7d      int64              `json:"views_7d"`
+	Clicks7d     int64              `json:"clicks_7d"`
+}
+
+// One user's non-archived carts (newest first) with product count and 7-day
+// views/clicks, for the admin per-user drill-down.
+func (q *Queries) AdminUserCarts(ctx context.Context, userID int64) ([]AdminUserCartsRow, error) {
+	rows, err := q.db.Query(ctx, adminUserCarts, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AdminUserCartsRow
+	for rows.Next() {
+		var i AdminUserCartsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Slug,
+			&i.Title,
+			&i.Visibility,
+			&i.CreatedAt,
+			&i.ProductCount,
+			&i.Views7d,
+			&i.Clicks7d,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const archiveCart = `-- name: ArchiveCart :exec
 UPDATE carts SET archived_at = now() WHERE id = $1
 `

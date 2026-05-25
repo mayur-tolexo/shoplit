@@ -13,8 +13,11 @@ import (
 )
 
 // RegisterRoutes mounts /carts/*, /me, /og-fetch under the parent router.
-func RegisterRoutes(r chi.Router, svc *Service, fetcher *ogfetch.Fetcher) {
-	r.Get("/me", getMe(svc))
+// isAdmin reports whether a user_id is an admin; it's surfaced on the /me
+// response so the frontend can gate the admin nav entry (the real enforcement
+// lives in the admin package's RequireAdmin middleware).
+func RegisterRoutes(r chi.Router, svc *Service, fetcher *ogfetch.Fetcher, isAdmin func(int64) bool) {
+	r.Get("/me", getMe(svc, isAdmin))
 	r.Get("/insights", getInsights(svc))
 	r.Get("/cover-images", listCoverImages(svc))
 	r.Get("/carts", listCarts(svc))
@@ -29,7 +32,7 @@ func RegisterRoutes(r chi.Router, svc *Service, fetcher *ogfetch.Fetcher) {
 	r.Get("/og-fetch", ogFetchHandler(fetcher))
 }
 
-func getMe(svc *Service) http.HandlerFunc {
+func getMe(svc *Service, isAdmin func(int64) bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uid, _ := auth.UserIDFromContext(r.Context())
 		u, err := svc.GetUser(r.Context(), uid)
@@ -37,7 +40,9 @@ func getMe(svc *Service) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		writeJSON(w, http.StatusOK, MarshalUser(u))
+		out := MarshalUser(u)
+		out.IsAdmin = isAdmin(uid)
+		writeJSON(w, http.StatusOK, out)
 	}
 }
 
