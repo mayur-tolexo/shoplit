@@ -836,6 +836,85 @@ func (q *Queries) ReorderCartItem(ctx context.Context, arg ReorderCartItemParams
 	return err
 }
 
+const searchCreators = `-- name: SearchCreators :many
+SELECT
+  u.id,
+  u.handle,
+  u.display_name,
+  u.avatar_url,
+  COUNT(DISTINCT c.id)::bigint AS cart_count,
+  (SELECT COUNT(*) FROM follows f WHERE f.creator_id = u.id)::bigint AS follower_count,
+  COALESCE(SUM(cv.views), 0)::bigint AS views_7d
+FROM users u
+JOIN carts c
+  ON c.user_id = u.id AND c.visibility = 'public' AND c.archived_at IS NULL
+LEFT JOIN cart_views_daily cv
+  ON cv.cart_id = c.id AND cv.day >= current_date - 6
+WHERE u.banned_at IS NULL AND u.handle IS NOT NULL
+  AND (u.handle ILIKE $1 OR u.display_name ILIKE $1)
+GROUP BY u.id, u.handle, u.display_name, u.avatar_url
+ORDER BY
+  (u.handle ILIKE $2 OR u.display_name ILIKE $2) DESC,
+  views_7d DESC,
+  MAX(c.updated_at) DESC,
+  u.id
+LIMIT $4 OFFSET $3
+`
+
+type SearchCreatorsParams struct {
+	Pattern pgtype.Text `json:"pattern"`
+	Prefix  pgtype.Text `json:"prefix"`
+	Off     int32       `json:"off"`
+	Lim     int32       `json:"lim"`
+}
+
+type SearchCreatorsRow struct {
+	ID            int64       `json:"id"`
+	Handle        pgtype.Text `json:"handle"`
+	DisplayName   string      `json:"display_name"`
+	AvatarUrl     pgtype.Text `json:"avatar_url"`
+	CartCount     int64       `json:"cart_count"`
+	FollowerCount int64       `json:"follower_count"`
+	Views7d       int64       `json:"views_7d"`
+}
+
+// Creators (>=1 public, non-archived cart) whose handle or display name matches
+// the search term. pattern = '%term%' (substring filter); prefix = 'term%'
+// (prefix matches rank first). Mirrors DiscoverCreators' columns so the handler
+// can reuse the same row mapping.
+func (q *Queries) SearchCreators(ctx context.Context, arg SearchCreatorsParams) ([]SearchCreatorsRow, error) {
+	rows, err := q.db.Query(ctx, searchCreators,
+		arg.Pattern,
+		arg.Prefix,
+		arg.Off,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchCreatorsRow
+	for rows.Next() {
+		var i SearchCreatorsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Handle,
+			&i.DisplayName,
+			&i.AvatarUrl,
+			&i.CartCount,
+			&i.FollowerCount,
+			&i.Views7d,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const touchExtensionToken = `-- name: TouchExtensionToken :exec
 UPDATE extension_tokens SET last_used_at = now() WHERE id = $1
 `

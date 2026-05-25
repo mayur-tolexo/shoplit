@@ -72,6 +72,14 @@ func seedViews(t *testing.T, pool *pgxpool.Pool, cartID int64, views int) {
 	require.NoError(t, err)
 }
 
+// banUser sets banned_at so the user is excluded from discover/search.
+func banUser(t *testing.T, pool *pgxpool.Pool, uid int64) {
+	t.Helper()
+	_, err := pool.Exec(context.Background(),
+		`UPDATE users SET banned_at = now() WHERE id = $1`, uid)
+	require.NoError(t, err)
+}
+
 func TestService_FollowUnfollowAndCount(t *testing.T) {
 	env := setupSvc(t)
 	ctx := context.Background()
@@ -154,6 +162,117 @@ func TestService_DiscoverOrderedBy7dViews(t *testing.T) {
 	assert.Equal(t, high, rows[0].ID, "highest 7-day views should rank first")
 	assert.Equal(t, int64(99), rows[0].Views7d)
 	assert.Equal(t, low, rows[1].ID)
+}
+
+// containsID reports whether any row has the given user id.
+func containsID(rows []sqlcgen.DiscoverCreatorsRow, id int64) bool {
+	for _, r := range rows {
+		if r.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+func TestService_SearchByHandleSubstring(t *testing.T) {
+	env := setupSvc(t)
+	ctx := context.Background()
+
+	// Handle is derived from the email local-part: "zelda".
+	match := newUser(t, env.q, "g-z", "zelda@example.com", "Z. Person")
+	other := newUser(t, env.q, "g-o", "frank@example.com", "Frank")
+	publicCart(t, env.cartsSvc, match, "Z Cart")
+	publicCart(t, env.cartsSvc, other, "F Cart")
+
+	// "eld" is a substring of the handle "zelda" but not of "frank".
+	rows, err := env.svc.SearchCreators(ctx, "eld", 50, 0)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.Equal(t, match, rows[0].ID)
+}
+
+func TestService_SearchByDisplayNameCaseInsensitive(t *testing.T) {
+	env := setupSvc(t)
+	ctx := context.Background()
+
+	match := newUser(t, env.q, "g-d", "user1@example.com", "Aurora Borealis")
+	other := newUser(t, env.q, "g-d2", "user2@example.com", "Frank")
+	publicCart(t, env.cartsSvc, match, "A Cart")
+	publicCart(t, env.cartsSvc, other, "F Cart")
+
+	// Lowercase query matches the display name "Aurora Borealis" case-insensitively
+	// (and does not match the handle "user1").
+	rows, err := env.svc.SearchCreators(ctx, "aurora", 50, 0)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.Equal(t, match, rows[0].ID)
+}
+
+func TestService_SearchPrefixRanksAboveSubstring(t *testing.T) {
+	env := setupSvc(t)
+	ctx := context.Background()
+
+	// "sunshine" → prefix match on "sun"; "midsun" → mere substring match on "sun".
+	prefix := newUser(t, env.q, "g-pre", "sunshine@example.com", "Sunshine")
+	substr := newUser(t, env.q, "g-sub", "midsun@example.com", "Midsun")
+	prefixCart := publicCart(t, env.cartsSvc, prefix, "Prefix Cart")
+	substrCart := publicCart(t, env.cartsSvc, substr, "Substr Cart")
+
+	// Give the substring match MORE 7-day views so only the prefix-first ORDER BY
+	// (not popularity) can explain it ranking ahead.
+	seedViews(t, env.pool, prefixCart.ID, 1)
+	seedViews(t, env.pool, substrCart.ID, 99)
+
+	rows, err := env.svc.SearchCreators(ctx, "sun", 50, 0)
+	require.NoError(t, err)
+	require.Len(t, rows, 2)
+	assert.Equal(t, prefix, rows[0].ID, "prefix match ranks above substring despite fewer views")
+	assert.Equal(t, substr, rows[1].ID)
+}
+
+func TestService_SearchExcludesPrivateOnlyAndBanned(t *testing.T) {
+	env := setupSvc(t)
+	ctx := context.Background()
+
+	// All three share the "nova" token but only one is a discoverable creator.
+	withPublic := newUser(t, env.q, "g-np", "nova-pub@example.com", "Nova Public")
+	privateOnly := newUser(t, env.q, "g-nv", "nova-priv@example.com", "Nova Private")
+	banned := newUser(t, env.q, "g-nb", "nova-ban@example.com", "Nova Banned")
+
+	publicCart(t, env.cartsSvc, withPublic, "Nova Pub Cart")
+	pc := publicCart(t, env.cartsSvc, privateOnly, "Nova Secret")
+	makePrivate(t, env.cartsSvc, privateOnly, pc.ID)
+	publicCart(t, env.cartsSvc, banned, "Nova Banned Cart")
+	banUser(t, env.pool, banned)
+
+	rows, err := env.svc.SearchCreators(ctx, "nova", 50, 0)
+	require.NoError(t, err)
+	require.Len(t, rows, 1, "only the creator with a public cart, not banned")
+	assert.Equal(t, withPublic, rows[0].ID)
+	assert.False(t, containsID(rows, privateOnly))
+	assert.False(t, containsID(rows, banned))
+}
+
+func TestService_SearchEscapesWildcards(t *testing.T) {
+	env := setupSvc(t)
+	ctx := context.Background()
+
+	a := newUser(t, env.q, "g-w1", "alpha@example.com", "Alpha")
+	b := newUser(t, env.q, "g-w2", "bravo@example.com", "Bravo")
+	publicCart(t, env.cartsSvc, a, "Alpha Cart")
+	publicCart(t, env.cartsSvc, b, "Bravo Cart")
+
+	// A bare "%" must be treated as a literal (escaped), not a match-all wildcard.
+	rows, err := env.svc.SearchCreators(ctx, "%", 50, 0)
+	require.NoError(t, err)
+	assert.Empty(t, rows, "literal %% should not match every creator")
+	assert.False(t, containsID(rows, a))
+	assert.False(t, containsID(rows, b))
+
+	// "_" is likewise literal: it must not single-character-wildcard-match.
+	rows, err = env.svc.SearchCreators(ctx, "_", 50, 0)
+	require.NoError(t, err)
+	assert.Empty(t, rows, "literal _ should not match")
 }
 
 func TestService_GetCreatorProfile(t *testing.T) {

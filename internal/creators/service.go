@@ -6,6 +6,7 @@ package creators
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/mayur-tolexo/shoplit/internal/carts"
@@ -58,6 +59,39 @@ func clampPage(limit, offset int32) (int32, int32) {
 func (s *Service) DiscoverCreators(ctx context.Context, limit, offset int32) ([]sqlcgen.DiscoverCreatorsRow, error) {
 	limit, offset = clampPage(limit, offset)
 	return s.q.DiscoverCreators(ctx, sqlcgen.DiscoverCreatorsParams{Limit: limit, Offset: offset})
+}
+
+// SearchCreators returns creators (users with >=1 public cart) whose handle or
+// display name matches q, ranked prefix-first then by 7-day cart views. It
+// mirrors DiscoverCreators' pagination and returns the same row type so the
+// handler reuses one marshal path; isFollowing is filled per viewer there.
+func (s *Service) SearchCreators(ctx context.Context, q string, limit, offset int32) ([]sqlcgen.DiscoverCreatorsRow, error) {
+	limit, offset = clampPage(limit, offset)
+	esc := escapeLike(strings.TrimSpace(q))
+	rows, err := s.q.SearchCreators(ctx, sqlcgen.SearchCreatorsParams{
+		Pattern: pgText("%" + esc + "%"),
+		Prefix:  pgText(esc + "%"),
+		Lim:     limit,
+		Off:     offset,
+	})
+	if err != nil {
+		return nil, err
+	}
+	// SearchCreatorsRow mirrors DiscoverCreatorsRow field-for-field; convert onto
+	// the discover row so the handler's marshal loop stays DRY (one MarshalCreator
+	// path). The structs are identical, so a direct conversion suffices.
+	out := make([]sqlcgen.DiscoverCreatorsRow, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, sqlcgen.DiscoverCreatorsRow(r))
+	}
+	return out, nil
+}
+
+// escapeLike escapes LIKE/ILIKE wildcards in user input so a literal `%` or `_`
+// in a query is matched literally rather than matching everything. Postgres
+// ILIKE uses `\` as the default escape char, so the backslash is escaped first.
+func escapeLike(s string) string {
+	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
 }
 
 // IsFollowing reports whether followerID follows creatorID. A zero followerID

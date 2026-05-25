@@ -108,6 +108,48 @@ func TestGETDiscover_ReturnsCreators(t *testing.T) {
 	assert.Equal(t, false, list[0]["isFollowing"], "anonymous viewer is never following")
 }
 
+func TestGETDiscover_WithQueryFiltersSubset(t *testing.T) {
+	env := setupSvc(t)
+
+	// Two discoverable creators; handles are derived from the email local-part.
+	zelda := newUser(t, env.q, "g-zelda", "zelda@example.com", "Zelda")
+	frank := newUser(t, env.q, "g-frank", "frank@example.com", "Frank")
+	publicCart(t, env.cartsSvc, zelda, "Z Cart")
+	publicCart(t, env.cartsSvc, frank, "F Cart")
+
+	r := chi.NewRouter()
+	r.Route("/api/public", func(r chi.Router) {
+		creators.RegisterPublicRoutes(r, env.svc, nil)
+	})
+
+	// No q → both creators.
+	all := do(t, r, http.MethodGet, "/api/public/creators")
+	assert.Equal(t, http.StatusOK, all.Code)
+	var allList []map[string]any
+	require.NoError(t, json.Unmarshal(all.Body.Bytes(), &allList))
+	require.Len(t, allList, 2)
+
+	// q=zel → only the matching creator.
+	rr := do(t, r, http.MethodGet, "/api/public/creators?q=zel")
+	assert.Equal(t, http.StatusOK, rr.Code)
+	var list []map[string]any
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &list))
+	require.Len(t, list, 1)
+	assert.Equal(t, "zelda", list[0]["handle"])
+	assert.Equal(t, false, list[0]["isFollowing"], "anonymous viewer is never following")
+}
+
+func TestGETDiscover_BlankQueryUnchanged(t *testing.T) {
+	env := setupHandlers(t)
+	// A q of only whitespace trims to empty → identical to no-q discover.
+	rr := do(t, env.r, http.MethodGet, "/api/public/creators?q=%20%20")
+	assert.Equal(t, http.StatusOK, rr.Code)
+	var list []map[string]any
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &list))
+	require.Len(t, list, 1)
+	assert.Equal(t, "creator", list[0]["handle"])
+}
+
 func TestGETProfile_ReturnsCreatorAndCarts(t *testing.T) {
 	env := setupHandlers(t)
 	rr := do(t, env.r, http.MethodGet, "/api/public/creators/creator")

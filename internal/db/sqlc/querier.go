@@ -61,6 +61,11 @@ type Querier interface {
 	NextCartItemPosition(ctx context.Context, cartID int64) (int32, error)
 	RemoveCartItem(ctx context.Context, arg RemoveCartItemParams) error
 	ReorderCartItem(ctx context.Context, arg ReorderCartItemParams) error
+	// Creators (>=1 public, non-archived cart) whose handle or display name matches
+	// the search term. pattern = '%term%' (substring filter); prefix = 'term%'
+	// (prefix matches rank first). Mirrors DiscoverCreators' columns so the handler
+	// can reuse the same row mapping.
+	SearchCreators(ctx context.Context, arg SearchCreatorsParams) ([]SearchCreatorsRow, error)
 	TouchExtensionToken(ctx context.Context, id int64) error
 	UnfollowCreator(ctx context.Context, arg UnfollowCreatorParams) error
 	UpdateCart(ctx context.Context, arg UpdateCartParams) (Cart, error)
