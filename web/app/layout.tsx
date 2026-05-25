@@ -55,7 +55,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" className={`${fraunces.variable} ${inter.variable} ${notoDeva.variable} ${jetbrains.variable}`}>
       <body>
         {children}
-        <MobileTabBar authed={!!user} />
+        <MobileTabBar user={user} />
         <Toaster position="bottom-center" richColors />
         <SwRegister />
       </body>

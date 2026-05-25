@@ -1,19 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
-import { toast } from "sonner";
-import { logout } from "@/lib/api-client";
 import { Logo } from "@/components/logo";
+import { AppSidebar } from "@/components/app-sidebar";
 import type { User } from "@/lib/types";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface NavBarProps {
   variant?: "marketing" | "app";
@@ -26,93 +16,26 @@ interface NavBarProps {
 // in. This avoids a duplicate client-side fetch AND prevents the previous
 // bug where a transient client fetch failure would `router.push("/login")`
 // and ping-pong the user between /dashboard ↔ /login.
-export function NavBar({ variant = "marketing", user }: NavBarProps) {
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      toast.success("Signed out");
-      router.push("/");
-    } catch {
-      toast.error("Couldn't sign out.");
-    }
-  };
-
+//
+// The right side is now a single, consistent surface on every page: the
+// AppSidebar trigger (avatar when signed in, ☰ when logged out). Logged-out
+// marketing also keeps the "Start free" pill to the left of the trigger.
+export function NavBar({ variant = "marketing", user = null }: NavBarProps) {
   return (
     <nav className="border-b border-rule bg-cream/90 backdrop-blur sticky top-0 z-40">
       <div className="mx-auto max-w-6xl flex items-center justify-between px-4 sm:px-6 py-3">
         <Logo href={variant === "app" ? "/dashboard" : "/"} />
-        {variant === "marketing" && (
-          <div className="flex items-center gap-4 text-sm">
-            {/* Secondary links: desktop only on mobile the tab bar (signed in)
-                or just the trailing pill (signed out) carries nav. */}
-            <Link href="/discover" className="hidden sm:inline-flex text-muted hover:text-ink transition-colors">
-              Discover
+        <div className="flex items-center gap-3">
+          {variant === "marketing" && !user && (
+            <Link
+              href="/login"
+              className="rounded-full bg-ink text-cream px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              Start free
             </Link>
-            <Link href="/feedback" className="hidden sm:inline-flex text-muted hover:text-ink transition-colors">
-              Feedback
-            </Link>
-            {user ? (
-              // Already signed in — reflect it instead of showing "Sign in"
-              // (otherwise returning to the homepage looks like a logout).
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-2 rounded-full bg-ink text-cream pl-2 pr-4 py-1.5 font-medium hover:opacity-90 transition-opacity"
-              >
-                {user.avatarUrl && (
-                  <Image src={user.avatarUrl} width={24} height={24} alt="" className="rounded-full" unoptimized />
-                )}
-                Dashboard
-              </Link>
-            ) : (
-              <>
-                {/* "Sign in" is desktop-only; on mobile the "Start free" pill
-                    (same /login destination) is the single trailing element. */}
-                <Link href="/login" className="hidden sm:inline-flex text-muted hover:text-ink transition-colors">
-                  Sign in
-                </Link>
-                <Link
-                  href="/login"
-                  className="rounded-full bg-ink text-cream px-4 py-2 font-medium hover:opacity-90 transition-opacity"
-                >
-                  Start free
-                </Link>
-              </>
-            )}
-          </div>
-        )}
-        {variant === "app" && user && (
-          <div className="flex items-center gap-5">
-            {/* Desktop-only quick links; on mobile the bottom nav covers these. */}
-            <div className="hidden sm:flex items-center gap-5 text-sm">
-              <Link href="/discover" className="text-muted hover:text-ink transition-colors">
-                Discover
-              </Link>
-              <Link href="/dashboard/following" className="text-muted hover:text-ink transition-colors">
-                Feed
-              </Link>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-2 outline-none">
-                <Image
-                  src={user.avatarUrl}
-                  width={32}
-                  height={32}
-                  alt={user.displayName}
-                  className="rounded-full border border-rule"
-                  unoptimized
-                />
-                <span className="text-sm">@{user.handle}</span>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-                  <LogOut size={14} className="mr-2" /> Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
+          )}
+          <AppSidebar user={user} />
+        </div>
       </div>
     </nav>
   );
