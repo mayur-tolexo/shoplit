@@ -43,7 +43,9 @@ export function CreatorCard({ creator }: { creator: Creator }) {
             {creator.followerCount === 1 ? "follower" : "followers"}
           </span>
         </div>
-        <FollowButton creator={creator} size="sm" className="shrink-0" />
+        {/* Defensive: the viewer is excluded from discover/search server-side,
+            so a self row shouldn't appear here — but never offer self-follow. */}
+        {!creator.isSelf && <FollowButton creator={creator} size="sm" className="shrink-0" />}
       </div>
     </Link>
   );

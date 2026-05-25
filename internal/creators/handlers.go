@@ -34,6 +34,15 @@ func discoverCreators(svc *Service, sm *auth.SessionManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limit := queryInt(r, "limit")
 		offset := queryInt(r, "offset")
+		// Optional viewer session → excludes the viewer from results (self never
+		// appears in their own discover/search) and fills isFollowing per row.
+		// Anonymous viewer → 0, which the query treats as "exclude nobody".
+		var viewerID int64
+		if sm != nil {
+			if id, err := sm.GetUser(r); err == nil {
+				viewerID = id
+			}
+		}
 		// q present (after trim) → search; absent/empty → popularity-ranked discover.
 		// Both return DiscoverCreatorsRow, so the marshal path below is shared.
 		q := strings.TrimSpace(r.URL.Query().Get("q"))
@@ -42,20 +51,13 @@ func discoverCreators(svc *Service, sm *auth.SessionManager) http.HandlerFunc {
 			err  error
 		)
 		if q != "" {
-			rows, err = svc.SearchCreators(r.Context(), q, limit, offset)
+			rows, err = svc.SearchCreators(r.Context(), viewerID, q, limit, offset)
 		} else {
-			rows, err = svc.DiscoverCreators(r.Context(), limit, offset)
+			rows, err = svc.DiscoverCreators(r.Context(), viewerID, limit, offset)
 		}
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
-		}
-		// Optional viewer session → fill isFollowing per row.
-		var viewerID int64
-		if sm != nil {
-			if id, err := sm.GetUser(r); err == nil {
-				viewerID = id
-			}
 		}
 		out := make([]CreatorJSON, 0, len(rows))
 		for _, row := range rows {

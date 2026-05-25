@@ -137,11 +137,36 @@ func TestService_DiscoverOnlyCreatorsWithPublicCarts(t *testing.T) {
 	pc := publicCart(t, env.cartsSvc, privateOnly, "Bob Secret")
 	makePrivate(t, env.cartsSvc, privateOnly, pc.ID)
 
-	rows, err := env.svc.DiscoverCreators(ctx, 50, 0)
+	// viewerID 0 → anonymous → excludes nobody.
+	rows, err := env.svc.DiscoverCreators(ctx, 0, 50, 0)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	assert.Equal(t, withPublic, rows[0].ID)
 	assert.Equal(t, int64(1), rows[0].CartCount)
+}
+
+func TestService_DiscoverExcludesViewer(t *testing.T) {
+	env := setupSvc(t)
+	ctx := context.Background()
+
+	viewer := newUser(t, env.q, "g-dv1", "viewer@example.com", "Viewer")
+	other := newUser(t, env.q, "g-dv2", "other@example.com", "Other")
+	publicCart(t, env.cartsSvc, viewer, "Viewer Cart")
+	publicCart(t, env.cartsSvc, other, "Other Cart")
+
+	// Logged-out (viewerID 0) sees both creators.
+	anon, err := env.svc.DiscoverCreators(ctx, 0, 50, 0)
+	require.NoError(t, err)
+	require.Len(t, anon, 2)
+	assert.True(t, containsID(anon, viewer))
+	assert.True(t, containsID(anon, other))
+
+	// Logged-in viewer is excluded from their own discover list.
+	rows, err := env.svc.DiscoverCreators(ctx, viewer, 50, 0)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.Equal(t, other, rows[0].ID)
+	assert.False(t, containsID(rows, viewer), "viewer must not appear in their own discover list")
 }
 
 func TestService_DiscoverOrderedBy7dViews(t *testing.T) {
@@ -156,7 +181,7 @@ func TestService_DiscoverOrderedBy7dViews(t *testing.T) {
 	seedViews(t, env.pool, lowCart.ID, 3)
 	seedViews(t, env.pool, highCart.ID, 99)
 
-	rows, err := env.svc.DiscoverCreators(ctx, 50, 0)
+	rows, err := env.svc.DiscoverCreators(ctx, 0, 50, 0)
 	require.NoError(t, err)
 	require.Len(t, rows, 2)
 	assert.Equal(t, high, rows[0].ID, "highest 7-day views should rank first")
@@ -185,10 +210,33 @@ func TestService_SearchByHandleSubstring(t *testing.T) {
 	publicCart(t, env.cartsSvc, other, "F Cart")
 
 	// "eld" is a substring of the handle "zelda" but not of "frank".
-	rows, err := env.svc.SearchCreators(ctx, "eld", 50, 0)
+	rows, err := env.svc.SearchCreators(ctx, 0, "eld", 50, 0)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	assert.Equal(t, match, rows[0].ID)
+}
+
+func TestService_SearchExcludesViewer(t *testing.T) {
+	env := setupSvc(t)
+	ctx := context.Background()
+
+	// Both handles contain the "nova" token; the viewer must be excluded.
+	viewer := newUser(t, env.q, "g-sv1", "nova-me@example.com", "Nova Me")
+	other := newUser(t, env.q, "g-sv2", "nova-you@example.com", "Nova You")
+	publicCart(t, env.cartsSvc, viewer, "Viewer Cart")
+	publicCart(t, env.cartsSvc, other, "Other Cart")
+
+	// Logged-out (viewerID 0) matches both.
+	anon, err := env.svc.SearchCreators(ctx, 0, "nova", 50, 0)
+	require.NoError(t, err)
+	require.Len(t, anon, 2)
+
+	// Logged-in viewer is excluded from their own search results.
+	rows, err := env.svc.SearchCreators(ctx, viewer, "nova", 50, 0)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	assert.Equal(t, other, rows[0].ID)
+	assert.False(t, containsID(rows, viewer), "viewer must not appear in their own search results")
 }
 
 func TestService_SearchByDisplayNameCaseInsensitive(t *testing.T) {
@@ -202,7 +250,7 @@ func TestService_SearchByDisplayNameCaseInsensitive(t *testing.T) {
 
 	// Lowercase query matches the display name "Aurora Borealis" case-insensitively
 	// (and does not match the handle "user1").
-	rows, err := env.svc.SearchCreators(ctx, "aurora", 50, 0)
+	rows, err := env.svc.SearchCreators(ctx, 0, "aurora", 50, 0)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	assert.Equal(t, match, rows[0].ID)
@@ -223,7 +271,7 @@ func TestService_SearchPrefixRanksAboveSubstring(t *testing.T) {
 	seedViews(t, env.pool, prefixCart.ID, 1)
 	seedViews(t, env.pool, substrCart.ID, 99)
 
-	rows, err := env.svc.SearchCreators(ctx, "sun", 50, 0)
+	rows, err := env.svc.SearchCreators(ctx, 0, "sun", 50, 0)
 	require.NoError(t, err)
 	require.Len(t, rows, 2)
 	assert.Equal(t, prefix, rows[0].ID, "prefix match ranks above substring despite fewer views")
@@ -245,7 +293,7 @@ func TestService_SearchExcludesPrivateOnlyAndBanned(t *testing.T) {
 	publicCart(t, env.cartsSvc, banned, "Nova Banned Cart")
 	banUser(t, env.pool, banned)
 
-	rows, err := env.svc.SearchCreators(ctx, "nova", 50, 0)
+	rows, err := env.svc.SearchCreators(ctx, 0, "nova", 50, 0)
 	require.NoError(t, err)
 	require.Len(t, rows, 1, "only the creator with a public cart, not banned")
 	assert.Equal(t, withPublic, rows[0].ID)
@@ -263,14 +311,14 @@ func TestService_SearchEscapesWildcards(t *testing.T) {
 	publicCart(t, env.cartsSvc, b, "Bravo Cart")
 
 	// A bare "%" must be treated as a literal (escaped), not a match-all wildcard.
-	rows, err := env.svc.SearchCreators(ctx, "%", 50, 0)
+	rows, err := env.svc.SearchCreators(ctx, 0, "%", 50, 0)
 	require.NoError(t, err)
 	assert.Empty(t, rows, "literal %% should not match every creator")
 	assert.False(t, containsID(rows, a))
 	assert.False(t, containsID(rows, b))
 
 	// "_" is likewise literal: it must not single-character-wildcard-match.
-	rows, err = env.svc.SearchCreators(ctx, "_", 50, 0)
+	rows, err = env.svc.SearchCreators(ctx, 0, "_", 50, 0)
 	require.NoError(t, err)
 	assert.Empty(t, rows, "literal _ should not match")
 }
@@ -299,10 +347,21 @@ func TestService_GetCreatorProfile(t *testing.T) {
 	assert.Equal(t, 1, profile.CartCount, "only the public, non-archived cart counts")
 	assert.Equal(t, 1, profile.FollowerCount)
 	assert.True(t, profile.IsFollowing)
+	assert.False(t, profile.IsSelf, "a different viewer is not the profile owner")
 	require.Len(t, cartsJSON, 1)
 	assert.Equal(t, "Visible", cartsJSON[0].Title)
 	// Public context must not leak analytics.
 	assert.Equal(t, 0, cartsJSON[0].ViewsLast7d)
+
+	// Anonymous viewer (0) is never self.
+	anon, _, err := env.svc.GetCreatorProfile(ctx, "priya", 0)
+	require.NoError(t, err)
+	assert.False(t, anon.IsSelf, "anonymous viewer is never the profile owner")
+
+	// The creator viewing their own profile → isSelf true.
+	own, _, err := env.svc.GetCreatorProfile(ctx, "priya", creator)
+	require.NoError(t, err)
+	assert.True(t, own.IsSelf, "the owner viewing their own profile is self")
 }
 
 func TestService_GetCreatorProfile_UnknownHandle(t *testing.T) {

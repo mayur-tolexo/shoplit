@@ -476,14 +476,16 @@ JOIN carts c
 LEFT JOIN cart_views_daily cv
   ON cv.cart_id = c.id AND cv.day >= current_date - 6
 WHERE u.banned_at IS NULL AND u.handle IS NOT NULL
+  AND u.id <> $1
 GROUP BY u.id, u.handle, u.display_name, u.avatar_url
 ORDER BY views_7d DESC, MAX(c.updated_at) DESC, u.id
-LIMIT $1 OFFSET $2
+LIMIT $3 OFFSET $2
 `
 
 type DiscoverCreatorsParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	ViewerID int64 `json:"viewer_id"`
+	Off      int32 `json:"off"`
+	Lim      int32 `json:"lim"`
 }
 
 type DiscoverCreatorsRow struct {
@@ -498,9 +500,10 @@ type DiscoverCreatorsRow struct {
 
 // Creators (users with >=1 public, non-archived cart) ranked by 7-day cart
 // views. cart_count counts public carts; follower_count via correlated
-// subquery to avoid join fan-out.
+// subquery to avoid join fan-out. viewer_id excludes the logged-in viewer from
+// their own results (a logged-out viewer passes 0, which matches no real user).
 func (q *Queries) DiscoverCreators(ctx context.Context, arg DiscoverCreatorsParams) ([]DiscoverCreatorsRow, error) {
-	rows, err := q.db.Query(ctx, discoverCreators, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, discoverCreators, arg.ViewerID, arg.Off, arg.Lim)
 	if err != nil {
 		return nil, err
 	}
@@ -1070,21 +1073,23 @@ JOIN carts c
 LEFT JOIN cart_views_daily cv
   ON cv.cart_id = c.id AND cv.day >= current_date - 6
 WHERE u.banned_at IS NULL AND u.handle IS NOT NULL
-  AND (u.handle ILIKE $1 OR u.display_name ILIKE $1)
+  AND u.id <> $1
+  AND (u.handle ILIKE $2 OR u.display_name ILIKE $2)
 GROUP BY u.id, u.handle, u.display_name, u.avatar_url
 ORDER BY
-  (u.handle ILIKE $2 OR u.display_name ILIKE $2) DESC,
+  (u.handle ILIKE $3 OR u.display_name ILIKE $3) DESC,
   views_7d DESC,
   MAX(c.updated_at) DESC,
   u.id
-LIMIT $4 OFFSET $3
+LIMIT $5 OFFSET $4
 `
 
 type SearchCreatorsParams struct {
-	Pattern pgtype.Text `json:"pattern"`
-	Prefix  pgtype.Text `json:"prefix"`
-	Off     int32       `json:"off"`
-	Lim     int32       `json:"lim"`
+	ViewerID int64       `json:"viewer_id"`
+	Pattern  pgtype.Text `json:"pattern"`
+	Prefix   pgtype.Text `json:"prefix"`
+	Off      int32       `json:"off"`
+	Lim      int32       `json:"lim"`
 }
 
 type SearchCreatorsRow struct {
@@ -1103,6 +1108,7 @@ type SearchCreatorsRow struct {
 // can reuse the same row mapping.
 func (q *Queries) SearchCreators(ctx context.Context, arg SearchCreatorsParams) ([]SearchCreatorsRow, error) {
 	rows, err := q.db.Query(ctx, searchCreators,
+		arg.ViewerID,
 		arg.Pattern,
 		arg.Prefix,
 		arg.Off,

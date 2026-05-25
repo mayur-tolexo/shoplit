@@ -212,7 +212,8 @@ ORDER BY created_at DESC;
 -- name: DiscoverCreators :many
 -- Creators (users with >=1 public, non-archived cart) ranked by 7-day cart
 -- views. cart_count counts public carts; follower_count via correlated
--- subquery to avoid join fan-out.
+-- subquery to avoid join fan-out. viewer_id excludes the logged-in viewer from
+-- their own results (a logged-out viewer passes 0, which matches no real user).
 SELECT
   u.id,
   u.handle,
@@ -227,9 +228,10 @@ JOIN carts c
 LEFT JOIN cart_views_daily cv
   ON cv.cart_id = c.id AND cv.day >= current_date - 6
 WHERE u.banned_at IS NULL AND u.handle IS NOT NULL
+  AND u.id <> sqlc.arg(viewer_id)
 GROUP BY u.id, u.handle, u.display_name, u.avatar_url
 ORDER BY views_7d DESC, MAX(c.updated_at) DESC, u.id
-LIMIT $1 OFFSET $2;
+LIMIT sqlc.arg(lim) OFFSET sqlc.arg(off);
 
 -- name: SearchCreators :many
 -- Creators (>=1 public, non-archived cart) whose handle or display name matches
@@ -250,6 +252,7 @@ JOIN carts c
 LEFT JOIN cart_views_daily cv
   ON cv.cart_id = c.id AND cv.day >= current_date - 6
 WHERE u.banned_at IS NULL AND u.handle IS NOT NULL
+  AND u.id <> sqlc.arg(viewer_id)
   AND (u.handle ILIKE sqlc.arg(pattern) OR u.display_name ILIKE sqlc.arg(pattern))
 GROUP BY u.id, u.handle, u.display_name, u.avatar_url
 ORDER BY

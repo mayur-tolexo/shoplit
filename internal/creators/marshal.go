@@ -14,10 +14,16 @@ type CreatorJSON struct {
 	CartCount     int    `json:"cartCount"`
 	FollowerCount int    `json:"followerCount"`
 	IsFollowing   bool   `json:"isFollowing"`
+	// IsSelf is true only on the profile endpoint when the logged-in viewer is
+	// the creator. It is always false for discover/search rows (the viewer is
+	// excluded from those at the query level).
+	IsSelf bool `json:"isSelf"`
 }
 
 // MarshalCreator converts a DiscoverCreators row into the frontend CreatorJSON
 // shape. isFollowing is supplied by the handler (it depends on the viewer).
+// isSelf is always false here: the viewer is excluded from discover/search at
+// the query level, so a row can never be the viewer themselves.
 func MarshalCreator(row sqlcgen.DiscoverCreatorsRow, isFollowing bool) CreatorJSON {
 	return CreatorJSON{
 		Handle:        pgTextStr(row.Handle),
@@ -26,13 +32,15 @@ func MarshalCreator(row sqlcgen.DiscoverCreatorsRow, isFollowing bool) CreatorJS
 		CartCount:     int(row.CartCount),
 		FollowerCount: int(row.FollowerCount),
 		IsFollowing:   isFollowing,
+		IsSelf:        false,
 	}
 }
 
 // MarshalCreatorProfile converts a user row plus its counts into CreatorJSON.
 // Used by the profile endpoint, where cartCount/followerCount are computed
-// alongside the carts rather than coming from the discover aggregate.
-func MarshalCreatorProfile(u sqlcgen.User, cartCount, followerCount int, isFollowing bool) CreatorJSON {
+// alongside the carts rather than coming from the discover aggregate. isSelf is
+// set when the viewer is the creator (the frontend then hides the Follow button).
+func MarshalCreatorProfile(u sqlcgen.User, cartCount, followerCount int, isFollowing, isSelf bool) CreatorJSON {
 	return CreatorJSON{
 		Handle:        pgTextStr(u.Handle),
 		DisplayName:   u.DisplayName,
@@ -40,6 +48,7 @@ func MarshalCreatorProfile(u sqlcgen.User, cartCount, followerCount int, isFollo
 		CartCount:     cartCount,
 		FollowerCount: followerCount,
 		IsFollowing:   isFollowing,
+		IsSelf:        isSelf,
 	}
 }
 

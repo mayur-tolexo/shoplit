@@ -44,7 +44,8 @@ type Querier interface {
 	CreateLink(ctx context.Context, arg CreateLinkParams) (Link, error)
 	// Creators (users with >=1 public, non-archived cart) ranked by 7-day cart
 	// views. cart_count counts public carts; follower_count via correlated
-	// subquery to avoid join fan-out.
+	// subquery to avoid join fan-out. viewer_id excludes the logged-in viewer from
+	// their own results (a logged-out viewer passes 0, which matches no real user).
 	DiscoverCreators(ctx context.Context, arg DiscoverCreatorsParams) ([]DiscoverCreatorsRow, error)
 	// ─── FOLLOWS / CREATORS ──────────────────────────────────────────────────────
 	FollowCreator(ctx context.Context, arg FollowCreatorParams) error
