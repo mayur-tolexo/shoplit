@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import type { Creator } from "@/lib/types";
 import { listCreators } from "@/lib/api-client";
-import { CreatorCard } from "@/components/creator-card";
+import { CreatorSearch } from "@/components/creator-search";
 
 export const dynamic = "force-dynamic";
 
@@ -35,17 +35,7 @@ export default async function DiscoverPage() {
         </p>
       </section>
 
-      {creators.length === 0 ? (
-        <p className="text-muted py-16 text-center">
-          No creators to show yet — check back soon.
-        </p>
-      ) : (
-        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
-          {creators.map((c) => (
-            <CreatorCard key={c.handle} creator={c} />
-          ))}
-        </div>
-      )}
+      <CreatorSearch initialCreators={creators} />
     </div>
   );
 }
