@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Check, Eye, Lock, MousePointerClick, Share2, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { Cart } from "@/lib/types";
@@ -12,9 +13,24 @@ interface CartCardProps {
   href?: string;
   /** When true, show a copy-share button overlaid on the cover. Defaults true on dashboard usage. */
   showCopy?: boolean;
+  /**
+   * When true (default) show the 7-day views/clicks/reach row, the Share
+   * button and the "Private" badge — owner/dashboard contexts. Set false in
+   * public contexts (profiles, following feed) where those numbers are 0 and
+   * leaking another creator's analytics is undesirable.
+   */
+  showStats?: boolean;
+  /** When true, render the cart owner (avatar + @handle). Used in the feed. */
+  showOwner?: boolean;
 }
 
-export function CartCard({ cart, href, showCopy = true }: CartCardProps) {
+export function CartCard({
+  cart,
+  href,
+  showCopy = true,
+  showStats = true,
+  showOwner = false,
+}: CartCardProps) {
   const target = href ?? `/dashboard/carts/${cart.id}`;
   const [copied, setCopied] = useState(false);
 
@@ -49,30 +65,50 @@ export function CartCard({ cart, href, showCopy = true }: CartCardProps) {
           sizes="(max-width: 768px) 100vw, 33vw"
           imageClassName="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
         />
-        {cart.visibility === "private" && (
+        {showStats && cart.visibility === "private" && (
           <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-ink/85 text-cream px-2 py-0.5 text-[11px] font-medium backdrop-blur-sm">
             <Lock size={11} aria-hidden /> Private
           </span>
         )}
       </div>
       <div className="p-4">
+        {showOwner && (
+          <div className="flex items-center gap-2 mb-2">
+            {cart.ownerAvatarUrl && (
+              <Image
+                src={cart.ownerAvatarUrl}
+                alt=""
+                width={24}
+                height={24}
+                unoptimized
+                className="rounded-full border border-rule shrink-0"
+              />
+            )}
+            <span className="text-xs text-muted truncate">@{cart.ownerHandle}</span>
+          </div>
+        )}
         <h3 className="font-serif text-lg mb-2 line-clamp-2">{cart.title}</h3>
         <div className="flex items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-            <span className="inline-flex items-center gap-1">
-              <Eye size={13} /> {cart.viewsLast7d.toLocaleString()}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <MousePointerClick size={13} /> {cart.clicksLast7d.toLocaleString()}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Users size={13} /> {cart.reachLast7d.toLocaleString()}
-            </span>
-            <span className="text-muted/70">
-              · {cart.products.length} {cart.products.length === 1 ? "item" : "items"}
+            {showStats && (
+              <>
+                <span className="inline-flex items-center gap-1">
+                  <Eye size={13} /> {cart.viewsLast7d.toLocaleString()}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <MousePointerClick size={13} /> {cart.clicksLast7d.toLocaleString()}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Users size={13} /> {cart.reachLast7d.toLocaleString()}
+                </span>
+              </>
+            )}
+            <span className={showStats ? "text-muted/70" : ""}>
+              {showStats ? "· " : ""}
+              {cart.products.length} {cart.products.length === 1 ? "item" : "items"}
             </span>
           </div>
-          {showCopy && (
+          {showStats && showCopy && (
             <button
               type="button"
               onClick={handleCopy}

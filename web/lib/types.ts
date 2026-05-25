@@ -17,6 +17,18 @@ export interface User {
   avatarUrl: string;       // 64×64+ image
 }
 
+// A creator surfaced in Discover / on a profile header. A user only becomes a
+// "creator" once they have >=1 public, non-archived cart. `isFollowing`
+// reflects the *viewer's* relationship (false when logged out).
+export interface Creator {
+  handle: string;
+  displayName: string;
+  avatarUrl: string;
+  cartCount: number;
+  followerCount: number;
+  isFollowing: boolean;
+}
+
 export interface Product {
   id: string;
   title: string;

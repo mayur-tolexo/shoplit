@@ -16,12 +16,12 @@
 // API_BASE comes from NEXT_PUBLIC_API_BASE_URL (available in both server and
 // client bundles); defaults to http://localhost:8080.
 
-import type { Cart, OGResult, Product, User } from "./types";
+import type { Cart, Creator, OGResult, Product, User } from "./types";
 
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
   }
@@ -77,6 +77,59 @@ export async function getCartBySlug(slug: string, opts?: AuthOpts): Promise<Cart
     if (e instanceof ApiError && e.status === 404) return null;
     throw e;
   }
+}
+
+// ─── DISCOVER / FOLLOW CREATORS ───────────────────────────────────────────
+
+type PageOpts = { limit?: number; offset?: number };
+
+function pageQuery(page?: PageOpts): string {
+  const sp = new URLSearchParams();
+  if (page?.limit !== undefined) sp.set("limit", String(page.limit));
+  if (page?.offset !== undefined) sp.set("offset", String(page.offset));
+  const q = sp.toString();
+  return q ? `?${q}` : "";
+}
+
+// Public discover list. `isFollowing` reflects the viewer when a session
+// cookie is forwarded; false otherwise. A page shorter than `limit` is the end.
+export async function listCreators(opts?: AuthOpts, page?: PageOpts): Promise<Creator[]> {
+  return jsonFetch<Creator[]>(`/api/public/creators${pageQuery(page)}`, opts);
+}
+
+// Public creator profile. Returns null on 404 (unknown/banned handle), mirroring
+// getCartBySlug so pages can call notFound() cleanly.
+export async function getCreatorProfile(
+  handle: string,
+  opts?: AuthOpts,
+): Promise<{ creator: Creator; carts: Cart[] } | null> {
+  try {
+    return await jsonFetch<{ creator: Creator; carts: Cart[] }>(
+      `/api/public/creators/${handle}`,
+      opts,
+    );
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
+}
+
+export async function followCreator(
+  handle: string,
+): Promise<{ following: boolean; followerCount: number }> {
+  return jsonFetch(`/api/v1/creators/${handle}/follow`, { method: "POST" });
+}
+
+export async function unfollowCreator(
+  handle: string,
+): Promise<{ following: boolean; followerCount: number }> {
+  return jsonFetch(`/api/v1/creators/${handle}/follow`, { method: "DELETE" });
+}
+
+// Authed "Following" feed: public carts of creators the viewer follows, newest
+// first. Requires a session (forwarded cookie on the server).
+export async function getFollowingFeed(opts?: AuthOpts, page?: PageOpts): Promise<Cart[]> {
+  return jsonFetch<Cart[]>(`/api/v1/following${pageQuery(page)}`, opts);
 }
 
 export async function getCartById(id: string, opts?: AuthOpts): Promise<Cart | null> {
