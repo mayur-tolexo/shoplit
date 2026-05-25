@@ -45,6 +45,9 @@ export function NavBar({ variant = "marketing", user }: NavBarProps) {
         <Logo href={variant === "app" ? "/dashboard" : "/"} />
         {variant === "marketing" && (
           <div className="flex items-center gap-4 text-sm">
+            <Link href="/discover" className="text-muted hover:text-ink transition-colors">
+              Discover
+            </Link>
             <Link href="/feedback" className="text-muted hover:text-ink transition-colors">
               Feedback
             </Link>
@@ -76,24 +79,35 @@ export function NavBar({ variant = "marketing", user }: NavBarProps) {
           </div>
         )}
         {variant === "app" && user && (
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-2 outline-none">
-              <Image
-                src={user.avatarUrl}
-                width={32}
-                height={32}
-                alt={user.displayName}
-                className="rounded-full border border-rule"
-                unoptimized
-              />
-              <span className="text-sm">@{user.handle}</span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-                <LogOut size={14} className="mr-2" /> Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-5">
+            {/* Desktop-only quick links; on mobile the bottom nav covers these. */}
+            <div className="hidden sm:flex items-center gap-5 text-sm">
+              <Link href="/discover" className="text-muted hover:text-ink transition-colors">
+                Discover
+              </Link>
+              <Link href="/dashboard/following" className="text-muted hover:text-ink transition-colors">
+                Following
+              </Link>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center gap-2 outline-none">
+                <Image
+                  src={user.avatarUrl}
+                  width={32}
+                  height={32}
+                  alt={user.displayName}
+                  className="rounded-full border border-rule"
+                  unoptimized
+                />
+                <span className="text-sm">@{user.handle}</span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                  <LogOut size={14} className="mr-2" /> Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )}
       </div>
     </nav>

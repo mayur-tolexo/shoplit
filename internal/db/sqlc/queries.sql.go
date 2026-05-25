@@ -131,6 +131,17 @@ func (q *Queries) CartViews7d(ctx context.Context, cartID int64) (int64, error) 
 	return views, err
 }
 
+const countFollowers = `-- name: CountFollowers :one
+SELECT COUNT(*)::bigint AS followers FROM follows WHERE creator_id = $1
+`
+
+func (q *Queries) CountFollowers(ctx context.Context, creatorID int64) (int64, error) {
+	row := q.db.QueryRow(ctx, countFollowers, creatorID)
+	var followers int64
+	err := row.Scan(&followers)
+	return followers, err
+}
+
 const createCart = `-- name: CreateCart :one
 
 INSERT INTO carts (user_id, slug, title, description, cover_image_url, is_public)
@@ -229,6 +240,90 @@ func (q *Queries) CreateLink(ctx context.Context, arg CreateLinkParams) (Link, e
 		&i.DisabledAt,
 	)
 	return i, err
+}
+
+const discoverCreators = `-- name: DiscoverCreators :many
+SELECT
+  u.id,
+  u.handle,
+  u.display_name,
+  u.avatar_url,
+  COUNT(DISTINCT c.id)::bigint AS cart_count,
+  (SELECT COUNT(*) FROM follows f WHERE f.creator_id = u.id)::bigint AS follower_count,
+  COALESCE(SUM(cv.views), 0)::bigint AS views_7d
+FROM users u
+JOIN carts c
+  ON c.user_id = u.id AND c.visibility = 'public' AND c.archived_at IS NULL
+LEFT JOIN cart_views_daily cv
+  ON cv.cart_id = c.id AND cv.day >= current_date - 6
+WHERE u.banned_at IS NULL AND u.handle IS NOT NULL
+GROUP BY u.id, u.handle, u.display_name, u.avatar_url
+ORDER BY views_7d DESC, MAX(c.updated_at) DESC, u.id
+LIMIT $1 OFFSET $2
+`
+
+type DiscoverCreatorsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+type DiscoverCreatorsRow struct {
+	ID            int64       `json:"id"`
+	Handle        pgtype.Text `json:"handle"`
+	DisplayName   string      `json:"display_name"`
+	AvatarUrl     pgtype.Text `json:"avatar_url"`
+	CartCount     int64       `json:"cart_count"`
+	FollowerCount int64       `json:"follower_count"`
+	Views7d       int64       `json:"views_7d"`
+}
+
+// Creators (users with >=1 public, non-archived cart) ranked by 7-day cart
+// views. cart_count counts public carts; follower_count via correlated
+// subquery to avoid join fan-out.
+func (q *Queries) DiscoverCreators(ctx context.Context, arg DiscoverCreatorsParams) ([]DiscoverCreatorsRow, error) {
+	rows, err := q.db.Query(ctx, discoverCreators, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DiscoverCreatorsRow
+	for rows.Next() {
+		var i DiscoverCreatorsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Handle,
+			&i.DisplayName,
+			&i.AvatarUrl,
+			&i.CartCount,
+			&i.FollowerCount,
+			&i.Views7d,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const followCreator = `-- name: FollowCreator :exec
+
+INSERT INTO follows (follower_id, creator_id)
+VALUES ($1, $2)
+ON CONFLICT (follower_id, creator_id) DO NOTHING
+`
+
+type FollowCreatorParams struct {
+	FollowerID int64 `json:"follower_id"`
+	CreatorID  int64 `json:"creator_id"`
+}
+
+// ─── FOLLOWS / CREATORS ──────────────────────────────────────────────────────
+func (q *Queries) FollowCreator(ctx context.Context, arg FollowCreatorParams) error {
+	_, err := q.db.Exec(ctx, followCreator, arg.FollowerID, arg.CreatorID)
+	return err
 }
 
 const getCartByID = `-- name: GetCartByID :one
@@ -338,6 +433,27 @@ func (q *Queries) GetUserByGoogleSub(ctx context.Context, googleSub pgtype.Text)
 	return i, err
 }
 
+const getUserByHandle = `-- name: GetUserByHandle :one
+SELECT id, email, phone, google_sub, display_name, avatar_url, handle, created_at, banned_at FROM users WHERE handle = $1 AND banned_at IS NULL
+`
+
+func (q *Queries) GetUserByHandle(ctx context.Context, handle pgtype.Text) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByHandle, handle)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Phone,
+		&i.GoogleSub,
+		&i.DisplayName,
+		&i.AvatarUrl,
+		&i.Handle,
+		&i.CreatedAt,
+		&i.BannedAt,
+	)
+	return i, err
+}
+
 const getUserByID = `-- name: GetUserByID :one
 
 
@@ -410,6 +526,24 @@ func (q *Queries) InsertFeedback(ctx context.Context, arg InsertFeedbackParams) 
 		arg.Page,
 	)
 	return err
+}
+
+const isFollowing = `-- name: IsFollowing :one
+SELECT EXISTS (
+  SELECT 1 FROM follows WHERE follower_id = $1 AND creator_id = $2
+) AS following
+`
+
+type IsFollowingParams struct {
+	FollowerID int64 `json:"follower_id"`
+	CreatorID  int64 `json:"creator_id"`
+}
+
+func (q *Queries) IsFollowing(ctx context.Context, arg IsFollowingParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isFollowing, arg.FollowerID, arg.CreatorID)
+	var following bool
+	err := row.Scan(&following)
+	return following, err
 }
 
 const listCartItems = `-- name: ListCartItems :many
@@ -538,6 +672,92 @@ func (q *Queries) ListFeedback(ctx context.Context) ([]Feedback, error) {
 	return items, nil
 }
 
+const listFollowingCartIDs = `-- name: ListFollowingCartIDs :many
+SELECT c.id, c.user_id, c.slug, c.title, c.description, c.cover_image_url, c.is_public, c.archived_at, c.created_at, c.updated_at, c.visibility
+FROM carts c
+JOIN follows f ON f.creator_id = c.user_id
+WHERE f.follower_id = $1 AND c.visibility = 'public' AND c.archived_at IS NULL
+ORDER BY c.created_at DESC
+LIMIT $2 OFFSET $3
+`
+
+type ListFollowingCartIDsParams struct {
+	FollowerID int64 `json:"follower_id"`
+	Limit      int32 `json:"limit"`
+	Offset     int32 `json:"offset"`
+}
+
+// Public, non-archived carts owned by creators that $1 follows, newest first.
+func (q *Queries) ListFollowingCartIDs(ctx context.Context, arg ListFollowingCartIDsParams) ([]Cart, error) {
+	rows, err := q.db.Query(ctx, listFollowingCartIDs, arg.FollowerID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Cart
+	for rows.Next() {
+		var i Cart
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Slug,
+			&i.Title,
+			&i.Description,
+			&i.CoverImageUrl,
+			&i.IsPublic,
+			&i.ArchivedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Visibility,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPublicCartsByUser = `-- name: ListPublicCartsByUser :many
+SELECT id, user_id, slug, title, description, cover_image_url, is_public, archived_at, created_at, updated_at, visibility FROM carts
+WHERE user_id = $1 AND visibility = 'public' AND archived_at IS NULL
+ORDER BY created_at DESC
+`
+
+func (q *Queries) ListPublicCartsByUser(ctx context.Context, userID int64) ([]Cart, error) {
+	rows, err := q.db.Query(ctx, listPublicCartsByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Cart
+	for rows.Next() {
+		var i Cart
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Slug,
+			&i.Title,
+			&i.Description,
+			&i.CoverImageUrl,
+			&i.IsPublic,
+			&i.ArchivedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Visibility,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUserCoverImages = `-- name: ListUserCoverImages :many
 SELECT cover_image_url, MAX(updated_at)::timestamptz AS last_used
 FROM carts
@@ -622,6 +842,20 @@ UPDATE extension_tokens SET last_used_at = now() WHERE id = $1
 
 func (q *Queries) TouchExtensionToken(ctx context.Context, id int64) error {
 	_, err := q.db.Exec(ctx, touchExtensionToken, id)
+	return err
+}
+
+const unfollowCreator = `-- name: UnfollowCreator :exec
+DELETE FROM follows WHERE follower_id = $1 AND creator_id = $2
+`
+
+type UnfollowCreatorParams struct {
+	FollowerID int64 `json:"follower_id"`
+	CreatorID  int64 `json:"creator_id"`
+}
+
+func (q *Queries) UnfollowCreator(ctx context.Context, arg UnfollowCreatorParams) error {
+	_, err := q.db.Exec(ctx, unfollowCreator, arg.FollowerID, arg.CreatorID)
 	return err
 }
 

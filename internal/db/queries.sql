@@ -161,3 +161,60 @@ SELECT COUNT(DISTINCT visitor_hash)::bigint AS reach
 FROM click_events ce
 JOIN links l ON ce.link_id = l.id
 WHERE l.cart_id = $1 AND ce.occurred_at >= current_date - 6 AND ce.visitor_hash IS NOT NULL;
+
+-- ─── FOLLOWS / CREATORS ──────────────────────────────────────────────────────
+
+-- name: FollowCreator :exec
+INSERT INTO follows (follower_id, creator_id)
+VALUES ($1, $2)
+ON CONFLICT (follower_id, creator_id) DO NOTHING;
+
+-- name: UnfollowCreator :exec
+DELETE FROM follows WHERE follower_id = $1 AND creator_id = $2;
+
+-- name: CountFollowers :one
+SELECT COUNT(*)::bigint AS followers FROM follows WHERE creator_id = $1;
+
+-- name: IsFollowing :one
+SELECT EXISTS (
+  SELECT 1 FROM follows WHERE follower_id = $1 AND creator_id = $2
+) AS following;
+
+-- name: GetUserByHandle :one
+SELECT * FROM users WHERE handle = $1 AND banned_at IS NULL;
+
+-- name: ListPublicCartsByUser :many
+SELECT * FROM carts
+WHERE user_id = $1 AND visibility = 'public' AND archived_at IS NULL
+ORDER BY created_at DESC;
+
+-- name: DiscoverCreators :many
+-- Creators (users with >=1 public, non-archived cart) ranked by 7-day cart
+-- views. cart_count counts public carts; follower_count via correlated
+-- subquery to avoid join fan-out.
+SELECT
+  u.id,
+  u.handle,
+  u.display_name,
+  u.avatar_url,
+  COUNT(DISTINCT c.id)::bigint AS cart_count,
+  (SELECT COUNT(*) FROM follows f WHERE f.creator_id = u.id)::bigint AS follower_count,
+  COALESCE(SUM(cv.views), 0)::bigint AS views_7d
+FROM users u
+JOIN carts c
+  ON c.user_id = u.id AND c.visibility = 'public' AND c.archived_at IS NULL
+LEFT JOIN cart_views_daily cv
+  ON cv.cart_id = c.id AND cv.day >= current_date - 6
+WHERE u.banned_at IS NULL AND u.handle IS NOT NULL
+GROUP BY u.id, u.handle, u.display_name, u.avatar_url
+ORDER BY views_7d DESC, MAX(c.updated_at) DESC, u.id
+LIMIT $1 OFFSET $2;
+
+-- name: ListFollowingCartIDs :many
+-- Public, non-archived carts owned by creators that $1 follows, newest first.
+SELECT c.*
+FROM carts c
+JOIN follows f ON f.creator_id = c.user_id
+WHERE f.follower_id = $1 AND c.visibility = 'public' AND c.archived_at IS NULL
+ORDER BY c.created_at DESC
+LIMIT $2 OFFSET $3;
