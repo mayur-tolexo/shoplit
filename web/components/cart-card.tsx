@@ -53,7 +53,7 @@ export function CartCard({ cart, href, showCopy = true }: CartCardProps) {
       <div className="p-4">
         <h3 className="font-serif text-lg mb-2 line-clamp-2">{cart.title}</h3>
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3 text-xs text-muted">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
             <span className="inline-flex items-center gap-1">
               <Eye size={13} /> {cart.viewsLast7d.toLocaleString()}
             </span>
