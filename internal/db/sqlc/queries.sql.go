@@ -635,7 +635,7 @@ func (q *Queries) GetLinkBySlug(ctx context.Context, slug string) (Link, error) 
 }
 
 const getUserByGoogleSub = `-- name: GetUserByGoogleSub :one
-SELECT id, email, phone, google_sub, display_name, avatar_url, handle, created_at, banned_at FROM users WHERE google_sub = $1
+SELECT id, email, phone, google_sub, display_name, avatar_url, handle, created_at, banned_at, notifications_seen_at FROM users WHERE google_sub = $1
 `
 
 func (q *Queries) GetUserByGoogleSub(ctx context.Context, googleSub pgtype.Text) (User, error) {
@@ -651,12 +651,13 @@ func (q *Queries) GetUserByGoogleSub(ctx context.Context, googleSub pgtype.Text)
 		&i.Handle,
 		&i.CreatedAt,
 		&i.BannedAt,
+		&i.NotificationsSeenAt,
 	)
 	return i, err
 }
 
 const getUserByHandle = `-- name: GetUserByHandle :one
-SELECT id, email, phone, google_sub, display_name, avatar_url, handle, created_at, banned_at FROM users WHERE handle = $1 AND banned_at IS NULL
+SELECT id, email, phone, google_sub, display_name, avatar_url, handle, created_at, banned_at, notifications_seen_at FROM users WHERE handle = $1 AND banned_at IS NULL
 `
 
 func (q *Queries) GetUserByHandle(ctx context.Context, handle pgtype.Text) (User, error) {
@@ -672,6 +673,7 @@ func (q *Queries) GetUserByHandle(ctx context.Context, handle pgtype.Text) (User
 		&i.Handle,
 		&i.CreatedAt,
 		&i.BannedAt,
+		&i.NotificationsSeenAt,
 	)
 	return i, err
 }
@@ -679,7 +681,7 @@ func (q *Queries) GetUserByHandle(ctx context.Context, handle pgtype.Text) (User
 const getUserByID = `-- name: GetUserByID :one
 
 
-SELECT id, email, phone, google_sub, display_name, avatar_url, handle, created_at, banned_at FROM users WHERE id = $1
+SELECT id, email, phone, google_sub, display_name, avatar_url, handle, created_at, banned_at, notifications_seen_at FROM users WHERE id = $1
 `
 
 // internal/db/queries.sql
@@ -697,6 +699,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 		&i.Handle,
 		&i.CreatedAt,
 		&i.BannedAt,
+		&i.NotificationsSeenAt,
 	)
 	return i, err
 }
@@ -942,6 +945,59 @@ func (q *Queries) ListFollowingCartIDs(ctx context.Context, arg ListFollowingCar
 	return items, nil
 }
 
+const listNotifications = `-- name: ListNotifications :many
+SELECT c.slug, c.title, c.created_at,
+  u.handle, u.display_name, u.avatar_url,
+  (c.created_at > (SELECT su.notifications_seen_at FROM users su WHERE su.id = $1)) AS unread
+FROM carts c
+JOIN follows f ON f.creator_id = c.user_id
+JOIN users u ON u.id = c.user_id
+WHERE f.follower_id = $1
+  AND c.visibility = 'public' AND c.archived_at IS NULL
+ORDER BY c.created_at DESC
+LIMIT 20
+`
+
+type ListNotificationsRow struct {
+	Slug        string             `json:"slug"`
+	Title       string             `json:"title"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	Handle      pgtype.Text        `json:"handle"`
+	DisplayName string             `json:"display_name"`
+	AvatarUrl   pgtype.Text        `json:"avatar_url"`
+	Unread      bool               `json:"unread"`
+}
+
+// The 20 most recent public, non-archived carts from creators the viewer ($1)
+// follows, newest first, each flagged unread when created after seen_at.
+func (q *Queries) ListNotifications(ctx context.Context, id int64) ([]ListNotificationsRow, error) {
+	rows, err := q.db.Query(ctx, listNotifications, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListNotificationsRow
+	for rows.Next() {
+		var i ListNotificationsRow
+		if err := rows.Scan(
+			&i.Slug,
+			&i.Title,
+			&i.CreatedAt,
+			&i.Handle,
+			&i.DisplayName,
+			&i.AvatarUrl,
+			&i.Unread,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPublicCartsByUser = `-- name: ListPublicCartsByUser :many
 SELECT id, user_id, slug, title, description, cover_image_url, is_public, archived_at, created_at, updated_at, visibility FROM carts
 WHERE user_id = $1 AND visibility = 'public' AND archived_at IS NULL
@@ -1018,6 +1074,16 @@ func (q *Queries) ListUserCoverImages(ctx context.Context, userID int64) ([]List
 	return items, nil
 }
 
+const markNotificationsSeen = `-- name: MarkNotificationsSeen :exec
+UPDATE users SET notifications_seen_at = now() WHERE id = $1
+`
+
+// Mark all notifications seen for the viewer ($1) by advancing seen_at to now().
+func (q *Queries) MarkNotificationsSeen(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, markNotificationsSeen, id)
+	return err
+}
+
 const nextCartItemPosition = `-- name: NextCartItemPosition :one
 SELECT COALESCE(MAX(position), -1) + 1 AS next_position FROM cart_items WHERE cart_id = $1
 `
@@ -1027,6 +1093,26 @@ func (q *Queries) NextCartItemPosition(ctx context.Context, cartID int64) (int32
 	var next_position int32
 	err := row.Scan(&next_position)
 	return next_position, err
+}
+
+const notificationUnreadCount = `-- name: NotificationUnreadCount :one
+
+SELECT COUNT(*)::bigint AS count
+FROM carts c
+JOIN follows f ON f.creator_id = c.user_id
+WHERE f.follower_id = $1
+  AND c.visibility = 'public' AND c.archived_at IS NULL
+  AND c.created_at > (SELECT notifications_seen_at FROM users WHERE id = $1)
+`
+
+// ─── NOTIFICATIONS (new-cart bell) ────────────────────────────────────────────
+// Count of public, non-archived carts from creators the viewer ($1) follows
+// that were created after the viewer's notifications_seen_at ("unread").
+func (q *Queries) NotificationUnreadCount(ctx context.Context, followerID int64) (int64, error) {
+	row := q.db.QueryRow(ctx, notificationUnreadCount, followerID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const removeCartItem = `-- name: RemoveCartItem :exec
@@ -1263,7 +1349,7 @@ ON CONFLICT (google_sub) DO UPDATE
   SET email        = EXCLUDED.email,
       display_name = EXCLUDED.display_name,
       avatar_url   = EXCLUDED.avatar_url
-RETURNING id, email, phone, google_sub, display_name, avatar_url, handle, created_at, banned_at
+RETURNING id, email, phone, google_sub, display_name, avatar_url, handle, created_at, banned_at, notifications_seen_at
 `
 
 type UpsertGoogleUserParams struct {
@@ -1293,6 +1379,7 @@ func (q *Queries) UpsertGoogleUser(ctx context.Context, arg UpsertGoogleUserPara
 		&i.Handle,
 		&i.CreatedAt,
 		&i.BannedAt,
+		&i.NotificationsSeenAt,
 	)
 	return i, err
 }

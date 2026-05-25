@@ -206,6 +206,25 @@ func (s *Service) FollowingFeed(ctx context.Context, followerID int64, limit, of
 	return out, nil
 }
 
+// NotificationUnreadCount returns how many public, non-archived carts from
+// creators userID follows were created after userID's notifications_seen_at.
+func (s *Service) NotificationUnreadCount(ctx context.Context, userID int64) (int64, error) {
+	return s.q.NotificationUnreadCount(ctx, userID)
+}
+
+// ListNotifications returns the 20 most recent public, non-archived carts from
+// creators userID follows, newest first, each flagged unread when created after
+// userID's notifications_seen_at.
+func (s *Service) ListNotifications(ctx context.Context, userID int64) ([]sqlcgen.ListNotificationsRow, error) {
+	return s.q.ListNotifications(ctx, userID)
+}
+
+// MarkNotificationsSeen advances userID's notifications_seen_at to now(), so the
+// next unread count starts from zero.
+func (s *Service) MarkNotificationsSeen(ctx context.Context, userID int64) error {
+	return s.q.MarkNotificationsSeen(ctx, userID)
+}
+
 // resolveCreatorID maps a handle to its user id, returning ErrNotFound if the
 // handle is unknown or the user is banned.
 func (s *Service) resolveCreatorID(ctx context.Context, handle string) (int64, error) {

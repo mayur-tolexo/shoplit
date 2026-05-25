@@ -8,7 +8,10 @@ import {
   getCreatorProfile,
   getFollowingFeed,
   getInsights,
+  getNotifications,
+  getUnreadCount,
   listCreators,
+  markNotificationsSeen,
   unfollowCreator,
 } from "./api-client";
 
@@ -140,5 +143,51 @@ describe("api-client request shapes", () => {
     await getAdminUserCarts("42");
     expect(calls[0].url).toBe(`${API_BASE}/api/v1/admin/users/42/carts`);
     expect(calls[0].init.method ?? "GET").toBe("GET");
+  });
+
+  it("getUnreadCount → GET /api/v1/notifications/unread-count and unwraps count", async () => {
+    const calls = mockFetch({ body: { count: 3 } });
+    const r = await getUnreadCount();
+    expect(calls[0].url).toBe(`${API_BASE}/api/v1/notifications/unread-count`);
+    expect(calls[0].init.method ?? "GET").toBe("GET");
+    expect(r).toBe(3);
+  });
+
+  it("getUnreadCount returns 0 on error (resilient badge)", async () => {
+    mockFetch({ ok: false, status: 500, body: "boom" });
+    const r = await getUnreadCount();
+    expect(r).toBe(0);
+  });
+
+  it("getNotifications → GET /api/v1/notifications and unwraps unreadCount/items", async () => {
+    const items = [
+      {
+        cartSlug: "spring-edit",
+        cartTitle: "Spring Edit",
+        creatorHandle: "priya.styles",
+        creatorDisplayName: "Priya Sharma",
+        creatorAvatarUrl: "https://example.com/a.png",
+        createdAt: "2026-05-25T10:00:00Z",
+        unread: true,
+      },
+    ];
+    const calls = mockFetch({ body: { unreadCount: 1, items } });
+    const r = await getNotifications();
+    expect(calls[0].url).toBe(`${API_BASE}/api/v1/notifications`);
+    expect(calls[0].init.method ?? "GET").toBe("GET");
+    expect(r).toEqual({ unreadCount: 1, items });
+  });
+
+  it("getNotifications defaults unreadCount/items when absent", async () => {
+    mockFetch({ body: {} });
+    const r = await getNotifications();
+    expect(r).toEqual({ unreadCount: 0, items: [] });
+  });
+
+  it("markNotificationsSeen → POST /api/v1/notifications/seen", async () => {
+    const calls = mockFetch({ body: {} });
+    await markNotificationsSeen();
+    expect(calls[0].url).toBe(`${API_BASE}/api/v1/notifications/seen`);
+    expect(calls[0].init.method).toBe("POST");
   });
 });

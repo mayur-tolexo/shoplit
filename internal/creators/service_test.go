@@ -3,6 +3,7 @@ package creators_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mayur-tolexo/shoplit/internal/auth"
@@ -401,6 +402,139 @@ func TestService_FollowingFeed(t *testing.T) {
 		assert.NotEqual(t, "Other Public", c.Title)
 		assert.Equal(t, 0, c.ViewsLast7d, "feed must not leak analytics")
 	}
+}
+
+// setSeenAt sets a user's notifications_seen_at to an explicit instant so tests
+// can reason about which carts are "before" vs "after" the seen mark.
+func setSeenAt(t *testing.T, pool *pgxpool.Pool, uid int64, at time.Time) {
+	t.Helper()
+	_, err := pool.Exec(context.Background(),
+		`UPDATE users SET notifications_seen_at = $2 WHERE id = $1`, uid, at)
+	require.NoError(t, err)
+}
+
+// setCartCreatedAt forces a cart's created_at to an explicit instant so the
+// before/after relationship to seen_at is deterministic (carts created in the
+// same test would otherwise share near-identical now() timestamps).
+func setCartCreatedAt(t *testing.T, pool *pgxpool.Pool, cartID int64, at time.Time) {
+	t.Helper()
+	_, err := pool.Exec(context.Background(),
+		`UPDATE carts SET created_at = $2 WHERE id = $1`, cartID, at)
+	require.NoError(t, err)
+}
+
+// seedNotifications wires up the standard notifications fixture: `follower`
+// follows creatorA (handle "alpha") but not creatorB (handle "bravo").
+// creatorA has one public cart created BEFORE the follower's seen_at, one
+// public cart AFTER, and one private cart (made AFTER). creatorB has one public
+// cart AFTER. Returns the follower id.
+func seedNotifications(t *testing.T, env svcEnv) int64 {
+	t.Helper()
+	ctx := context.Background()
+
+	follower := newUser(t, env.q, "g-nf", "follower@example.com", "Follower")
+	creatorA := newUser(t, env.q, "g-na", "alpha@example.com", "Alpha")
+	creatorB := newUser(t, env.q, "g-nb", "bravo@example.com", "Bravo")
+
+	seen := time.Date(2026, 5, 20, 12, 0, 0, 0, time.UTC)
+	before := seen.Add(-24 * time.Hour)
+	after := seen.Add(24 * time.Hour)
+	afterLater := seen.Add(48 * time.Hour)
+
+	// creatorA: a public cart before seen, a public cart after seen, a private
+	// cart after seen (must never appear as a notification).
+	aOld := publicCart(t, env.cartsSvc, creatorA, "Alpha Old")
+	setCartCreatedAt(t, env.pool, aOld.ID, before)
+	aNew := publicCart(t, env.cartsSvc, creatorA, "Alpha New")
+	setCartCreatedAt(t, env.pool, aNew.ID, after)
+	aPriv := publicCart(t, env.cartsSvc, creatorA, "Alpha Private")
+	makePrivate(t, env.cartsSvc, creatorA, aPriv.ID)
+	setCartCreatedAt(t, env.pool, aPriv.ID, afterLater)
+
+	// creatorB (not followed): a public cart after seen.
+	bNew := publicCart(t, env.cartsSvc, creatorB, "Bravo New")
+	setCartCreatedAt(t, env.pool, bNew.ID, after)
+
+	_, err := env.svc.Follow(ctx, follower, "alpha")
+	require.NoError(t, err)
+
+	setSeenAt(t, env.pool, follower, seen)
+	return follower
+}
+
+func TestService_NotificationUnreadCount(t *testing.T) {
+	env := setupSvc(t)
+	ctx := context.Background()
+	follower := seedNotifications(t, env)
+
+	// Only creatorA's public cart created after seen_at counts: "Alpha New".
+	// "Alpha Old" is before seen_at, "Alpha Private" is private, "Bravo New" is
+	// from a non-followed creator.
+	count, err := env.svc.NotificationUnreadCount(ctx, follower)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), count)
+}
+
+func TestService_ListNotifications(t *testing.T) {
+	env := setupSvc(t)
+	ctx := context.Background()
+	follower := seedNotifications(t, env)
+
+	rows, err := env.svc.ListNotifications(ctx, follower)
+	require.NoError(t, err)
+	require.Len(t, rows, 2, "only followed creator's public carts (old + new)")
+
+	// Newest first: "Alpha New" (after seen) then "Alpha Old" (before seen).
+	assert.Equal(t, "Alpha New", rows[0].Title)
+	assert.True(t, rows[0].Unread, "the after-seen cart is unread")
+	assert.Equal(t, "Alpha Old", rows[1].Title)
+	assert.False(t, rows[1].Unread, "the before-seen cart is read")
+
+	for _, r := range rows {
+		assert.NotEqual(t, "Alpha Private", r.Title, "private carts excluded")
+		assert.NotEqual(t, "Bravo New", r.Title, "non-followed creators excluded")
+		assert.Equal(t, "alpha", r.Handle.String, "creator handle attached")
+	}
+}
+
+func TestService_MarkNotificationsSeen(t *testing.T) {
+	env := setupSvc(t)
+	ctx := context.Background()
+	follower := seedNotifications(t, env)
+
+	// One unread before marking seen.
+	count, err := env.svc.NotificationUnreadCount(ctx, follower)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), count)
+
+	require.NoError(t, env.svc.MarkNotificationsSeen(ctx, follower))
+
+	// After marking seen, nothing is unread (seen_at advanced to now()).
+	count, err = env.svc.NotificationUnreadCount(ctx, follower)
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), count)
+
+	// The carts still list (history), now all flagged read.
+	rows, err := env.svc.ListNotifications(ctx, follower)
+	require.NoError(t, err)
+	require.Len(t, rows, 2)
+	for _, r := range rows {
+		assert.False(t, r.Unread, "all carts read after marking seen")
+	}
+}
+
+func TestService_NotificationsEmptyForNoFollows(t *testing.T) {
+	env := setupSvc(t)
+	ctx := context.Background()
+	lonely := newUser(t, env.q, "g-lonely-n", "lonely@example.com", "Lonely")
+
+	count, err := env.svc.NotificationUnreadCount(ctx, lonely)
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), count)
+
+	rows, err := env.svc.ListNotifications(ctx, lonely)
+	require.NoError(t, err)
+	assert.Empty(t, rows)
 }
 
 func TestService_FollowingFeedEmpty(t *testing.T) {

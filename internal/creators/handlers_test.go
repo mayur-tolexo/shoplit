@@ -190,3 +190,88 @@ func TestGETFollowing_EmptyForNoFollows(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &feed))
 	assert.Empty(t, feed)
 }
+
+// setupNotificationHandlers wires a router whose authed user is the `follower`
+// from seedNotifications, so the three /notifications routes operate on a viewer
+// with exactly one unread (followed, public, after-seen) cart.
+func setupNotificationHandlers(t *testing.T) http.Handler {
+	t.Helper()
+	env := setupSvc(t)
+	follower := seedNotifications(t, env)
+
+	r := chi.NewRouter()
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Use(injectFixedUser(follower))
+		creators.RegisterRoutes(r, env.svc)
+	})
+	return r
+}
+
+func TestGETNotificationsUnreadCount(t *testing.T) {
+	r := setupNotificationHandlers(t)
+	rr := do(t, r, http.MethodGet, "/api/v1/notifications/unread-count")
+	assert.Equal(t, http.StatusOK, rr.Code)
+	var out map[string]any
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &out))
+	assert.Equal(t, float64(1), out["count"])
+}
+
+func TestGETNotifications_ReturnsItemsAndUnreadCount(t *testing.T) {
+	r := setupNotificationHandlers(t)
+	rr := do(t, r, http.MethodGet, "/api/v1/notifications")
+	assert.Equal(t, http.StatusOK, rr.Code)
+	var out struct {
+		UnreadCount float64          `json:"unreadCount"`
+		Items       []map[string]any `json:"items"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &out))
+	assert.Equal(t, float64(1), out.UnreadCount)
+	require.Len(t, out.Items, 2, "followed creator's old + new public carts, newest first")
+	assert.Equal(t, "Alpha New", out.Items[0]["cartTitle"])
+	assert.Equal(t, true, out.Items[0]["unread"])
+	assert.Equal(t, "alpha", out.Items[0]["creatorHandle"])
+	assert.Equal(t, "Alpha Old", out.Items[1]["cartTitle"])
+	assert.Equal(t, false, out.Items[1]["unread"])
+}
+
+func TestGETNotifications_ItemsNonNilWhenEmpty(t *testing.T) {
+	env := setupSvc(t)
+	lonely := newUser(t, env.q, "g-h-lonely", "lonely@example.com", "Lonely")
+	r := chi.NewRouter()
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Use(injectFixedUser(lonely))
+		creators.RegisterRoutes(r, env.svc)
+	})
+
+	rr := do(t, r, http.MethodGet, "/api/v1/notifications")
+	assert.Equal(t, http.StatusOK, rr.Code)
+	// items must serialize as [] (non-nil), not null.
+	assert.Contains(t, rr.Body.String(), `"items":[]`)
+	var out struct {
+		UnreadCount float64          `json:"unreadCount"`
+		Items       []map[string]any `json:"items"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &out))
+	assert.Equal(t, float64(0), out.UnreadCount)
+	assert.NotNil(t, out.Items)
+	assert.Empty(t, out.Items)
+}
+
+func TestPOSTNotificationsSeen_ResetsUnreadCount(t *testing.T) {
+	r := setupNotificationHandlers(t)
+
+	// One unread to start.
+	pre := do(t, r, http.MethodGet, "/api/v1/notifications/unread-count")
+	var preOut map[string]any
+	require.NoError(t, json.Unmarshal(pre.Body.Bytes(), &preOut))
+	assert.Equal(t, float64(1), preOut["count"])
+
+	seen := do(t, r, http.MethodPost, "/api/v1/notifications/seen")
+	assert.Equal(t, http.StatusOK, seen.Code)
+
+	// After marking seen the count is 0.
+	post := do(t, r, http.MethodGet, "/api/v1/notifications/unread-count")
+	var postOut map[string]any
+	require.NoError(t, json.Unmarshal(post.Body.Bytes(), &postOut))
+	assert.Equal(t, float64(0), postOut["count"])
+}

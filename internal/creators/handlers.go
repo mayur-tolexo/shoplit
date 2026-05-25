@@ -28,6 +28,9 @@ func RegisterRoutes(r chi.Router, svc *Service) {
 	r.Post("/creators/{handle}/follow", followCreator(svc))
 	r.Delete("/creators/{handle}/follow", unfollowCreator(svc))
 	r.Get("/following", followingFeed(svc))
+	r.Get("/notifications/unread-count", notificationUnreadCount(svc))
+	r.Get("/notifications", listNotifications(svc))
+	r.Post("/notifications/seen", markNotificationsSeen(svc))
 }
 
 func discoverCreators(svc *Service, sm *auth.SessionManager) http.HandlerFunc {
@@ -147,6 +150,55 @@ func followingFeed(svc *Service) http.HandlerFunc {
 			return
 		}
 		writeJSON(w, http.StatusOK, feed)
+	}
+}
+
+// notificationUnreadCount returns {"count": N} — the number of unread new-cart
+// notifications for the authed viewer.
+func notificationUnreadCount(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uid, _ := auth.UserIDFromContext(r.Context())
+		count, err := svc.NotificationUnreadCount(r.Context(), uid)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"count": count})
+	}
+}
+
+// listNotifications returns {"unreadCount": N, "items": [...]} — the viewer's
+// 20 most recent new-cart notifications (newest first) plus the unread count.
+func listNotifications(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uid, _ := auth.UserIDFromContext(r.Context())
+		rows, err := svc.ListNotifications(r.Context(), uid)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		count, err := svc.NotificationUnreadCount(r.Context(), uid)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"unreadCount": count,
+			"items":       MarshalNotifications(rows),
+		})
+	}
+}
+
+// markNotificationsSeen advances the viewer's notifications_seen_at to now() so
+// the unread count resets, returning 200.
+func markNotificationsSeen(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uid, _ := auth.UserIDFromContext(r.Context())
+		if err := svc.MarkNotificationsSeen(r.Context(), uid); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
 	}
 }
 

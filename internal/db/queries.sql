@@ -306,3 +306,33 @@ SELECT
 FROM carts c
 WHERE c.user_id = $1 AND c.archived_at IS NULL
 ORDER BY c.created_at DESC;
+
+-- ─── NOTIFICATIONS (new-cart bell) ────────────────────────────────────────────
+
+-- name: NotificationUnreadCount :one
+-- Count of public, non-archived carts from creators the viewer ($1) follows
+-- that were created after the viewer's notifications_seen_at ("unread").
+SELECT COUNT(*)::bigint AS count
+FROM carts c
+JOIN follows f ON f.creator_id = c.user_id
+WHERE f.follower_id = $1
+  AND c.visibility = 'public' AND c.archived_at IS NULL
+  AND c.created_at > (SELECT notifications_seen_at FROM users WHERE id = $1);
+
+-- name: ListNotifications :many
+-- The 20 most recent public, non-archived carts from creators the viewer ($1)
+-- follows, newest first, each flagged unread when created after seen_at.
+SELECT c.slug, c.title, c.created_at,
+  u.handle, u.display_name, u.avatar_url,
+  (c.created_at > (SELECT su.notifications_seen_at FROM users su WHERE su.id = $1)) AS unread
+FROM carts c
+JOIN follows f ON f.creator_id = c.user_id
+JOIN users u ON u.id = c.user_id
+WHERE f.follower_id = $1
+  AND c.visibility = 'public' AND c.archived_at IS NULL
+ORDER BY c.created_at DESC
+LIMIT 20;
+
+-- name: MarkNotificationsSeen :exec
+-- Mark all notifications seen for the viewer ($1) by advancing seen_at to now().
+UPDATE users SET notifications_seen_at = now() WHERE id = $1;
