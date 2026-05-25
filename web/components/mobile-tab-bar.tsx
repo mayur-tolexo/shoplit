@@ -1,14 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Compass, Home, Plus, Rss } from "lucide-react";
+import { Compass, Home, Plus, Rss, User as UserIcon } from "lucide-react";
+import type { User } from "@/lib/types";
 
 // Global mobile tab bar. Rendered once from the root layout (not per-route),
-// so it persists across the primary signed-in surfaces — Carts (/dashboard*),
-// Discover (/discover, public) and Add (/add, top-level) — instead of vanishing
-// the moment you leave /dashboard*. Hidden at sm+ (the top NavBar covers
-// desktop). Sign-out lives in the top-right avatar dropdown.
+// so it persists across the primary signed-in surfaces — Dashboard (/dashboard*),
+// Discover (/discover, public), Add (/add, top-level) and profiles (/u/*) —
+// instead of vanishing the moment you leave /dashboard*. Hidden at sm+ (the top
+// NavBar covers desktop). Account / sign-out live in the AppSidebar drawer.
+//
+// Five slots so the raised `+` sits dead-center (2 · + · 2). When the viewer
+// has no handle the Profile tab is omitted and a balanced spacer keeps `+`
+// centered.
 //
 // Visibility: only for signed-in viewers, and only on a "primary" route. On
 // /c/[slug], /login, the marketing home, legal, etc. it renders null.
@@ -16,14 +22,18 @@ function isPrimaryRoute(pathname: string): boolean {
   return (
     pathname === "/discover" ||
     pathname === "/add" ||
-    pathname.startsWith("/dashboard")
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/u/")
   );
 }
 
-export function MobileTabBar({ authed }: { authed: boolean }) {
+export function MobileTabBar({ user }: { user: User | null }) {
   const pathname = usePathname();
+  const authed = !!user;
 
   if (!authed || !isPrimaryRoute(pathname)) return null;
+
+  const profileHref = user?.handle ? `/u/${user.handle}` : null;
 
   return (
     <nav
@@ -34,7 +44,7 @@ export function MobileTabBar({ authed }: { authed: boolean }) {
       <div className="flex items-stretch justify-around h-16 px-2">
         <NavItem
           href="/dashboard"
-          label="Carts"
+          label="Dashboard"
           icon={<Home size={20} />}
           active={pathname === "/dashboard"}
         />
@@ -51,6 +61,34 @@ export function MobileTabBar({ authed }: { authed: boolean }) {
           icon={<Rss size={20} />}
           active={pathname === "/dashboard/following"}
         />
+        {profileHref ? (
+          <NavItem
+            href={profileHref}
+            label="Profile"
+            icon={
+              user?.avatarUrl ? (
+                <Image
+                  src={user.avatarUrl}
+                  width={20}
+                  height={20}
+                  alt=""
+                  className={`rounded-full ${
+                    pathname === profileHref
+                      ? "ring-2 ring-accent"
+                      : "border border-rule"
+                  }`}
+                  unoptimized
+                />
+              ) : (
+                <UserIcon size={20} />
+              )
+            }
+            active={pathname === profileHref}
+          />
+        ) : (
+          // Balanced spacer keeps the `+` dead-center when there's no profile.
+          <div aria-hidden="true" className="flex-1" />
+        )}
       </div>
     </nav>
   );
