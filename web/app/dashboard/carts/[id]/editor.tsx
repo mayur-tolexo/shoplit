@@ -181,7 +181,7 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 pb-24">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 pb-24 overflow-x-clip">
       {/* HEADER */}
       <div className="flex items-center justify-between gap-3 mb-4">
         <Link href="/dashboard" className="text-sm text-muted hover:text-ink shrink-0">← Carts</Link>
@@ -207,20 +207,20 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
           onChange={(e) => patch({ title: e.target.value })}
           placeholder="Untitled cart"
           aria-label="Cart title"
-          className="w-full bg-transparent font-serif text-3xl sm:text-4xl tracking-tight px-0 py-1 border-0 border-b-2 border-transparent group-hover/title:border-rule focus:border-accent focus:outline-none transition-colors placeholder:text-muted/60"
+          className="w-full bg-transparent font-serif text-2xl sm:text-4xl tracking-tight px-0 py-1 border-0 border-b-2 border-transparent group-hover/title:border-rule focus:border-accent focus:outline-none transition-colors placeholder:text-muted/60"
         />
       </div>
 
-      <div className="grid lg:grid-cols-[1.4fr_1fr] gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6 lg:gap-10">
         {/* LEFT — editor */}
-        <div className="space-y-6">
+        <div className="space-y-6 min-w-0">
           {/* PRODUCTS — the core task, first */}
           <section>
-            <h2 className="font-serif text-2xl mb-4">Add a product</h2>
+            <h2 className="font-serif text-xl sm:text-2xl mb-3">Add a product</h2>
             <PasteUrlPreview onResolved={addProduct} />
 
-            <div className="flex items-center justify-between mt-6 mb-3">
-              <h2 className="font-serif text-2xl">Products ({cart.products.length})</h2>
+            <div className="flex items-center justify-between gap-2 mt-6 mb-3">
+              <h2 className="font-serif text-xl sm:text-2xl">Products ({cart.products.length})</h2>
               <Link
                 href={`/c/${cart.slug}`}
                 target="_blank"
