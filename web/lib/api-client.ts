@@ -16,7 +16,7 @@
 // API_BASE comes from NEXT_PUBLIC_API_BASE_URL (available in both server and
 // client bundles); defaults to http://localhost:8080.
 
-import type { Cart, Creator, OGResult, Product, User } from "./types";
+import type { Cart, Creator, DailyStat, OGResult, Product, User } from "./types";
 
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
@@ -68,6 +68,14 @@ export async function listMyCoverImages(opts?: AuthOpts): Promise<string[]> {
 
 export async function listMyCarts(opts?: AuthOpts): Promise<Cart[]> {
   return jsonFetch<Cart[]>("/api/v1/carts", opts);
+}
+
+// Account-wide 14-day daily activity series for the dashboard insights.
+// Returns the `daily` array; `[]` when the field is absent (defensive — the
+// caller treats an empty series the same as "no activity yet").
+export async function getInsights(opts?: AuthOpts): Promise<DailyStat[]> {
+  const r = await jsonFetch<{ daily?: DailyStat[] }>("/api/v1/insights", opts);
+  return r.daily ?? [];
 }
 
 export async function getCartBySlug(slug: string, opts?: AuthOpts): Promise<Cart | null> {

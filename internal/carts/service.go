@@ -3,6 +3,7 @@ package carts
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -68,6 +69,66 @@ func (s *Service) CartStats7d(ctx context.Context, cartID int64) (views, clicks,
 	clicks, _ = s.q.CartClicks7d(ctx, cid)
 	reach, _ = s.q.CartReach7d(ctx, cid)
 	return views, clicks, reach
+}
+
+// DailyStat is a single day's view and click totals across all of a user's carts.
+type DailyStat struct {
+	Date   time.Time
+	Views  int64
+	Clicks int64
+}
+
+// dailySeriesDays is the fixed window length of the insights series.
+const dailySeriesDays = 14
+
+// dateKey is the canonical day key used to merge query rows onto the skeleton.
+const dateKey = "2006-01-02"
+
+// AccountDailyStats returns a 14-day, ascending, zero-filled series of view and
+// click totals across all carts owned by userID, covering today-13 … today.
+//
+// The date skeleton is built in Go from time.Now().UTC() so every day is present
+// even when the underlying tables have no rows for it; the SQL queries only
+// return days with activity and we merge those onto the skeleton by date.
+func (s *Service) AccountDailyStats(ctx context.Context, userID int64) ([]DailyStat, error) {
+	viewRows, err := s.q.AccountDailyViews(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	clickRows, err := s.q.AccountDailyClicks(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	views := make(map[string]int64, len(viewRows))
+	for _, r := range viewRows {
+		if r.Day.Valid {
+			views[r.Day.Time.UTC().Format(dateKey)] = r.Views
+		}
+	}
+	clicks := make(map[string]int64, len(clickRows))
+	for _, r := range clickRows {
+		if r.Day.Valid {
+			clicks[r.Day.Time.UTC().Format(dateKey)] = r.Clicks
+		}
+	}
+
+	// Anchor "today" in UTC to match how DATE columns are stored/compared
+	// (current_date in the queries). Truncate to the day boundary.
+	now := time.Now().UTC()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+
+	out := make([]DailyStat, 0, dailySeriesDays)
+	for i := dailySeriesDays - 1; i >= 0; i-- {
+		day := today.AddDate(0, 0, -i)
+		key := day.Format(dateKey)
+		out = append(out, DailyStat{
+			Date:   day,
+			Views:  views[key],
+			Clicks: clicks[key],
+		})
+	}
+	return out, nil
 }
 
 // ListMyCoverImages returns the distinct cover image URLs the user has used

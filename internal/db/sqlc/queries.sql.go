@@ -11,6 +11,79 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const accountDailyClicks = `-- name: AccountDailyClicks :many
+SELECT cd.day::date AS day, COALESCE(SUM(cd.clicks), 0)::bigint AS clicks
+FROM click_daily cd
+JOIN links l ON l.id = cd.link_id
+JOIN carts c ON c.id = l.cart_id
+WHERE c.user_id = $1 AND cd.day >= current_date - 13
+GROUP BY cd.day
+ORDER BY cd.day
+`
+
+type AccountDailyClicksRow struct {
+	Day    pgtype.Date `json:"day"`
+	Clicks int64       `json:"clicks"`
+}
+
+// Per-day click totals across all of a user's cart links over the last 14 days.
+// links.cart_id is nullable; the JOIN naturally drops non-cart (single) links.
+func (q *Queries) AccountDailyClicks(ctx context.Context, userID int64) ([]AccountDailyClicksRow, error) {
+	rows, err := q.db.Query(ctx, accountDailyClicks, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AccountDailyClicksRow
+	for rows.Next() {
+		var i AccountDailyClicksRow
+		if err := rows.Scan(&i.Day, &i.Clicks); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const accountDailyViews = `-- name: AccountDailyViews :many
+SELECT cv.day::date AS day, COALESCE(SUM(cv.views), 0)::bigint AS views
+FROM cart_views_daily cv
+JOIN carts c ON c.id = cv.cart_id
+WHERE c.user_id = $1 AND cv.day >= current_date - 13
+GROUP BY cv.day
+ORDER BY cv.day
+`
+
+type AccountDailyViewsRow struct {
+	Day   pgtype.Date `json:"day"`
+	Views int64       `json:"views"`
+}
+
+// Per-day view totals across all of a user's carts over the last 14 days.
+// Only days with rows are returned; the service zero-fills the gaps.
+func (q *Queries) AccountDailyViews(ctx context.Context, userID int64) ([]AccountDailyViewsRow, error) {
+	rows, err := q.db.Query(ctx, accountDailyViews, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AccountDailyViewsRow
+	for rows.Next() {
+		var i AccountDailyViewsRow
+		if err := rows.Scan(&i.Day, &i.Views); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const addCartItem = `-- name: AddCartItem :one
 
 INSERT INTO cart_items (cart_id, position, link_id, title, description, image_url, price_text, retailer)
