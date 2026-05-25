@@ -20,6 +20,7 @@ type CartJSON struct {
 	CoverImageURL    string        `json:"coverImageUrl"`
 	AccentHex        string        `json:"accentHex"`
 	Products         []ProductJSON `json:"products"`
+	Visibility       string        `json:"visibility"`
 	ViewsLast7d      int           `json:"viewsLast7d"`
 	ClicksLast7d     int           `json:"clicksLast7d"`
 	ReachLast7d      int           `json:"reachLast7d"`
@@ -70,6 +71,7 @@ func MarshalCart(c sqlcgen.Cart, owner sqlcgen.User, items []sqlcgen.ListCartIte
 		Title:            c.Title,
 		Bio:              pgTextStr(c.Description),
 		CoverImageURL:    pgTextStr(c.CoverImageUrl),
+		Visibility:       c.Visibility,
 		AccentHex:        "#B5532A",
 		ViewsLast7d:      viewsLast7d,
 		ClicksLast7d:     clicksLast7d,

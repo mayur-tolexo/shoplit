@@ -131,14 +131,20 @@ func updateCart(svc *Service) http.HandlerFunc {
 			Description   *string `json:"description,omitempty"`
 			CoverImageURL *string `json:"cover_image_url,omitempty"`
 			IsPublic      *bool   `json:"is_public,omitempty"`
+			Visibility    *string `json:"visibility,omitempty"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, "bad body", http.StatusBadRequest)
 			return
 		}
+		if body.Visibility != nil && *body.Visibility != "public" && *body.Visibility != "private" {
+			http.Error(w, `visibility must be "public" or "private"`, http.StatusBadRequest)
+			return
+		}
 		cart, err := svc.UpdateCart(r.Context(), uid, id, UpdatePatch{
 			Title: body.Title, Description: body.Description,
 			CoverImageURL: body.CoverImageURL, IsPublic: body.IsPublic,
+			Visibility: body.Visibility,
 		})
 		if errors.Is(err, ErrForbidden) {
 			http.Error(w, "forbidden", http.StatusForbidden)
