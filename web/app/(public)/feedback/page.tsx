@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { NavBar } from "@/components/nav-bar";
-import { Footer } from "@/components/footer";
 import { submitFeedback } from "@/lib/api-client";
 import { Lightbulb, ArrowRight } from "lucide-react";
 
@@ -39,10 +37,8 @@ export default function FeedbackPage() {
   };
 
   return (
-    <>
-      <NavBar variant="marketing" />
-      <main className="mx-auto max-w-6xl px-4 sm:px-6">
-        {/* HERO */}
+    <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      {/* HERO */}
         <section className="pt-16 pb-10 sm:pt-24 sm:pb-14 text-center max-w-2xl mx-auto">
           <span
             className="inline-grid place-items-center size-12 rounded-2xl text-accent mb-5"
@@ -164,8 +160,6 @@ export default function FeedbackPage() {
             )}
           </div>
         </section>
-      </main>
-      <Footer />
-    </>
+    </div>
   );
 }

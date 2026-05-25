@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MarketingNav } from "@/components/marketing-nav";
-import { Footer } from "@/components/footer";
 import { RevealOnScroll } from "@/components/reveal-on-scroll";
 import {
   Lock, ImageUp, UsersRound, Search, Rss, Heart, Star,
@@ -61,10 +59,8 @@ const ITEMS: Item[] = [
 
 export default function RoadmapPage() {
   return (
-    <>
-      <MarketingNav />
-      <main className="mx-auto max-w-6xl px-4 sm:px-6">
-        {/* HERO */}
+    <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      {/* HERO */}
         <section className="pt-16 pb-10 sm:pt-24 sm:pb-14 text-center max-w-2xl mx-auto">
           <p className="text-sm text-accent uppercase tracking-widest font-medium mb-3">Roadmap</p>
           <h1 className="font-serif text-4xl sm:text-5xl leading-[1.05] mb-4">Where shoplit is headed</h1>
@@ -121,8 +117,6 @@ export default function RoadmapPage() {
             </Link>
           </div>
         </section>
-      </main>
-      <Footer />
-    </>
+    </div>
   );
 }

@@ -1,14 +1,9 @@
-import { MarketingNav } from "@/components/marketing-nav";
-import { Footer } from "@/components/footer";
-
 export const metadata = { title: "Privacy · shoplit" };
 
 export default function PrivacyPage() {
   return (
-    <>
-      <MarketingNav />
-      <main className="mx-auto max-w-2xl px-4 sm:px-6 py-16">
-        <h1 className="font-serif text-4xl mb-2">Privacy</h1>
+    <div className="mx-auto max-w-2xl px-4 sm:px-6 py-16">
+      <h1 className="font-serif text-4xl mb-2">Privacy</h1>
         <p className="text-sm text-muted mb-8">Last updated: 2026-05-23</p>
 
         <h2 className="font-serif text-2xl mt-8 mb-2">What we collect</h2>
@@ -44,8 +39,6 @@ export default function PrivacyPage() {
         <p className="leading-relaxed text-ink">
           Questions? Reach us via the GitHub repo&apos;s issue tracker.
         </p>
-      </main>
-      <Footer />
-    </>
+    </div>
   );
 }
