@@ -267,3 +267,39 @@ JOIN follows f ON f.creator_id = c.user_id
 WHERE f.follower_id = $1 AND c.visibility = 'public' AND c.archived_at IS NULL
 ORDER BY c.created_at DESC
 LIMIT $2 OFFSET $3;
+
+-- name: AdminOverview :one
+-- Platform-wide totals for the read-only admin overview. privateCarts is
+-- derived in Go (carts - publicCarts) so this stays a single round-trip.
+SELECT
+  (SELECT COUNT(*) FROM users)::bigint AS users,
+  (SELECT COUNT(*) FROM carts WHERE archived_at IS NULL)::bigint AS carts,
+  (SELECT COUNT(*) FROM carts WHERE archived_at IS NULL AND visibility = 'public')::bigint AS public_carts,
+  (SELECT COUNT(*) FROM cart_items)::bigint AS products,
+  (SELECT COUNT(*) FROM follows)::bigint AS follows,
+  (SELECT COALESCE(SUM(views), 0) FROM cart_views_daily WHERE day >= current_date - 6)::bigint AS views_7d,
+  (SELECT COALESCE(SUM(clicks), 0) FROM click_daily WHERE day >= current_date - 6)::bigint AS clicks_7d;
+
+-- name: AdminListUsers :many
+-- All users (newest first, capped) with per-user cart/follower/following counts
+-- for the admin user table.
+SELECT
+  u.id, u.handle, u.display_name, u.avatar_url, u.email, u.created_at,
+  (SELECT COUNT(*) FROM carts c   WHERE c.user_id = u.id AND c.archived_at IS NULL)::bigint AS cart_count,
+  (SELECT COUNT(*) FROM follows f WHERE f.creator_id = u.id)::bigint  AS follower_count,
+  (SELECT COUNT(*) FROM follows f WHERE f.follower_id = u.id)::bigint AS following_count
+FROM users u
+ORDER BY u.created_at DESC
+LIMIT 500;
+
+-- name: AdminUserCarts :many
+-- One user's non-archived carts (newest first) with product count and 7-day
+-- views/clicks, for the admin per-user drill-down.
+SELECT
+  c.id, c.slug, c.title, c.visibility, c.created_at,
+  (SELECT COUNT(*) FROM cart_items ci WHERE ci.cart_id = c.id)::bigint AS product_count,
+  (SELECT COALESCE(SUM(cv.views), 0)  FROM cart_views_daily cv WHERE cv.cart_id = c.id AND cv.day >= current_date - 6)::bigint AS views_7d,
+  (SELECT COALESCE(SUM(cd.clicks), 0) FROM click_daily cd JOIN links l ON cd.link_id = l.id WHERE l.cart_id = c.id AND cd.day >= current_date - 6)::bigint AS clicks_7d
+FROM carts c
+WHERE c.user_id = $1 AND c.archived_at IS NULL
+ORDER BY c.created_at DESC;

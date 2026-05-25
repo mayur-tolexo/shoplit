@@ -15,6 +15,7 @@ export interface User {
   handle: string;          // e.g. "priya.styles"
   displayName: string;     // e.g. "Priya Sharma"
   avatarUrl: string;       // 64×64+ image
+  isAdmin?: boolean;        // true only on the /me response for admin users; gates the Admin nav + panel
 }
 
 // A creator surfaced in Discover / on a profile header. A user only becomes a
@@ -66,6 +67,46 @@ export interface DailyStat {
   date: string;            // "YYYY-MM-DD"
   views: number;
   clicks: number;
+}
+
+// ─── ADMIN PANEL (read-only) ────────────────────────────────────────────────
+// Field names match the backend contract for /api/v1/admin/* exactly.
+
+// Platform-wide totals for the admin overview cards. All numbers.
+export interface AdminOverview {
+  users: number;
+  carts: number;
+  publicCarts: number;
+  privateCarts: number;
+  products: number;
+  follows: number;
+  views7d: number;
+  clicks7d: number;
+}
+
+// One row in the admin users table. `email`/`handle`/`avatarUrl` are "" when null.
+export interface AdminUser {
+  id: string;
+  handle: string;
+  displayName: string;
+  avatarUrl: string;
+  email: string;
+  createdAt: string;       // ISO
+  carts: number;
+  followers: number;
+  following: number;
+}
+
+// One of a user's carts in the admin drill-down.
+export interface AdminUserCart {
+  id: string;
+  slug: string;
+  title: string;
+  visibility: "public" | "private";
+  products: number;
+  views7d: number;
+  clicks7d: number;
+  createdAt: string;       // ISO
 }
 
 export interface OGResult {

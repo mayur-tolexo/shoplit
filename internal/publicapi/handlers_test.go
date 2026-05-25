@@ -45,7 +45,7 @@ func setup(t *testing.T) (http.Handler, string) {
 				next.ServeHTTP(w, r.WithContext(auth.WithUserID(r.Context(), uid)))
 			})
 		})
-		carts.RegisterRoutes(r, svc, fetcher)
+		carts.RegisterRoutes(r, svc, fetcher, func(int64) bool { return false })
 	})
 	r.Route("/api/public", func(r chi.Router) {
 		publicapi.RegisterRoutes(r, svc, nil)

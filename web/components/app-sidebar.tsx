@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Plus,
   Rss,
+  ShieldCheck,
   Sparkles,
   User as UserIcon,
 } from "lucide-react";
@@ -140,6 +141,15 @@ export function AppSidebar({ user }: { user: User | null }) {
                 active={pathname === "/add"}
                 onNavigate={() => setOpen(false)}
               />
+              {user.isAdmin && (
+                <DrawerLink
+                  href="/dashboard/admin"
+                  label="Admin"
+                  icon={<ShieldCheck size={18} />}
+                  active={pathname.startsWith("/dashboard/admin")}
+                  onNavigate={() => setOpen(false)}
+                />
+              )}
 
               <div className="my-2 h-px bg-rule" aria-hidden="true" />
 

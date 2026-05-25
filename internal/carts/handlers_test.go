@@ -40,7 +40,7 @@ func setupHandlers(t *testing.T) (http.Handler, *auth.SessionManager) {
 	r := chi.NewRouter()
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(injectFixedUser(uid))
-		carts.RegisterRoutes(r, carts.NewService(q), fetcher)
+		carts.RegisterRoutes(r, carts.NewService(q), fetcher, func(int64) bool { return false })
 	})
 	return r, sm
 }
