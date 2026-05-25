@@ -23,6 +23,7 @@ import type {
   Cart,
   Creator,
   DailyStat,
+  NotificationItem,
   OGResult,
   Product,
   User,
@@ -155,6 +156,37 @@ export async function unfollowCreator(
 // first. Requires a session (forwarded cookie on the server).
 export async function getFollowingFeed(opts?: AuthOpts, page?: PageOpts): Promise<Cart[]> {
   return jsonFetch<Cart[]>(`/api/v1/following${pageQuery(page)}`, opts);
+}
+
+// ─── NOTIFICATIONS (in-app new-cart bell) ──────────────────────────────────
+// All three are authed (behind RequireUser). The badge fetch is best-effort:
+// getUnreadCount swallows errors and returns 0 so a transient failure never
+// crashes the bell on mount.
+
+export async function getUnreadCount(opts?: AuthOpts): Promise<number> {
+  try {
+    const r = await jsonFetch<{ count: number }>(
+      "/api/v1/notifications/unread-count",
+      opts,
+    );
+    return r.count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+export async function getNotifications(
+  opts?: AuthOpts,
+): Promise<{ unreadCount: number; items: NotificationItem[] }> {
+  const r = await jsonFetch<{ unreadCount?: number; items?: NotificationItem[] }>(
+    "/api/v1/notifications",
+    opts,
+  );
+  return { unreadCount: r.unreadCount ?? 0, items: r.items ?? [] };
+}
+
+export async function markNotificationsSeen(): Promise<void> {
+  await jsonFetch("/api/v1/notifications/seen", { method: "POST" });
 }
 
 export async function getCartById(id: string, opts?: AuthOpts): Promise<Cart | null> {

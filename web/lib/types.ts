@@ -33,6 +33,21 @@ export interface Creator {
   isSelf?: boolean;
 }
 
+// One row in the in-app new-cart notifications bell. A "notification" is a
+// public, non-archived cart published by a creator the viewer follows.
+// `unread` is true when the cart was created after the viewer last opened the
+// bell (their server-side `notifications_seen_at`). Field names match the
+// backend contract for /api/v1/notifications exactly.
+export interface NotificationItem {
+  cartSlug: string;            // /c/{cartSlug}
+  cartTitle: string;
+  creatorHandle: string;
+  creatorDisplayName: string;
+  creatorAvatarUrl: string;
+  createdAt: string;           // ISO
+  unread: boolean;
+}
+
 export interface Product {
   id: string;
   title: string;

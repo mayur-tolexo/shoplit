@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { AppSidebar } from "@/components/app-sidebar";
+import { NotificationBell } from "@/components/notification-bell";
 import type { User } from "@/lib/types";
 
 interface NavBarProps {
@@ -34,6 +35,9 @@ export function NavBar({ variant = "marketing", user = null }: NavBarProps) {
               Start free
             </Link>
           )}
+          {/* In-app new-cart bell. Shown on every page (both variants) when
+              signed in, just before the account control. Hidden logged-out. */}
+          {user && <NotificationBell />}
           <AppSidebar user={user} />
         </div>
       </div>
