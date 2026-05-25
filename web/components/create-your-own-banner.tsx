@@ -33,7 +33,7 @@ export function CreateYourOwnBanner() {
           style={{ background: "var(--accent)" }}
         />
 
-        <div className="relative grid items-center gap-8 px-6 py-10 sm:px-10 sm:py-14 lg:grid-cols-[1.1fr_minmax(0,1fr)]">
+        <div className="relative grid items-center gap-8 px-6 py-10 sm:px-10 sm:py-14 lg:grid-cols-[1.25fr_minmax(0,0.85fr)]">
           {/* Copy + CTAs */}
           <div className="flex flex-col items-start text-left">
             <div className="mb-5 flex items-center gap-2">
@@ -52,10 +52,10 @@ export function CreateYourOwnBanner() {
               free. Your followers tap, you get the click.
             </p>
 
-            <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center">
+            <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
               <Link
                 href="/login"
-                className="group inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-cream px-7 text-sm font-semibold text-ink shadow-lg shadow-black/25 transition-transform hover:scale-[1.03]"
+                className="group inline-flex min-h-[48px] items-center justify-center gap-2 whitespace-nowrap rounded-full bg-cream px-7 text-sm font-semibold text-ink shadow-lg shadow-black/25 transition-transform hover:scale-[1.03]"
               >
                 Create your shoplit — free
                 <ArrowRight
@@ -66,7 +66,7 @@ export function CreateYourOwnBanner() {
               </Link>
               <Link
                 href="/discover"
-                className="inline-flex min-h-[48px] items-center justify-center rounded-full px-5 text-sm font-medium text-cream/80 underline-offset-4 transition-colors hover:text-cream hover:underline"
+                className="inline-flex min-h-[48px] items-center justify-center whitespace-nowrap rounded-full px-5 text-sm font-medium text-cream/80 underline-offset-4 transition-colors hover:text-cream hover:underline"
               >
                 Discover creators
               </Link>
@@ -88,6 +88,15 @@ export function CreateYourOwnBanner() {
   );
 }
 
+// Warm, varied tints so the mock product tiles read as real product photos
+// rather than empty grey boxes.
+const TILE_TINTS = [
+  "from-accent/35 to-paper",
+  "from-paper to-accent/25",
+  "from-rule to-accent/15",
+  "from-accent/25 to-rule",
+] as const;
+
 // A static, data-free miniature of a shoplit cart page (cover + creator handle
 // + a little product grid) shown inside the phone frame. Purely decorative.
 function MiniShoplit() {
@@ -103,15 +112,15 @@ function MiniShoplit() {
         </div>
       </div>
       <div className="grid grid-cols-2 gap-1.5 p-2">
-        {Array.from({ length: 4 }).map((_, i) => (
+        {TILE_TINTS.map((tint, i) => (
           <div
             key={i}
             className="overflow-hidden rounded-md border border-rule bg-paper"
           >
-            <div className="aspect-square bg-gradient-to-br from-paper to-rule" />
+            <div className={`aspect-square bg-gradient-to-br ${tint}`} />
             <div className="space-y-1 p-1.5">
               <div className="h-1.5 w-3/4 rounded bg-rule" />
-              <div className="h-1.5 w-1/3 rounded bg-accent/50" />
+              <div className="h-1.5 w-1/3 rounded bg-accent/60" />
             </div>
           </div>
         ))}
