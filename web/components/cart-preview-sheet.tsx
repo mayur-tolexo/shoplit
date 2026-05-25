@@ -39,7 +39,7 @@ export function CartPreviewSheet({ cart, fullPage = false }: { cart: Cart; fullP
         {cart.products.length === 0 ? (
           <p className="text-sm text-muted text-center py-10">No products yet — add one to see it here.</p>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 pointer-events-none">
             {cart.products.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}

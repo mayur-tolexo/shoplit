@@ -335,7 +335,7 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
 
       {/* MOBILE full-screen preview */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-full w-screen h-[100dvh] p-0 gap-0 rounded-none overflow-y-auto">
+        <DialogContent className="max-w-full w-screen h-[100dvh] p-0 gap-0 rounded-none overflow-y-auto [&>button:last-child]:hidden">
           <DialogHeader className="sticky top-0 z-10 flex-row items-center justify-between bg-cream/95 backdrop-blur border-b border-rule px-4 py-3 space-y-0">
             <DialogTitle className="font-serif text-lg">Preview</DialogTitle>
             <DialogClose asChild>
