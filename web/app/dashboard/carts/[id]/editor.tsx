@@ -298,7 +298,7 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
                 <button
                   type="button"
                   aria-pressed={cart.visibility === "public"}
-                  onClick={() => patch({ visibility: "public" })}
+                  onClick={() => cart.visibility !== "public" && patch({ visibility: "public" })}
                   className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                     cart.visibility === "public" ? "bg-ink text-cream" : "text-muted hover:text-ink"
                   }`}
@@ -308,7 +308,7 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
                 <button
                   type="button"
                   aria-pressed={cart.visibility === "private"}
-                  onClick={() => patch({ visibility: "private" })}
+                  onClick={() => cart.visibility !== "private" && patch({ visibility: "private" })}
                   className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                     cart.visibility === "private" ? "bg-ink text-cream" : "text-muted hover:text-ink"
                   }`}
