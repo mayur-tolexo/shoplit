@@ -6,6 +6,7 @@ import Image from "next/image";
 import { ArrowRight, Check, Copy, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import type { User } from "@/lib/types";
+import { DownloadStoryButton } from "@/components/download-story-button";
 
 // The dashboard hero: a warm-gradient banner with a greeting, the creator's
 // public profile link (copy + share), and — on lg+ — a live preview of that
@@ -120,7 +121,15 @@ export function DashboardHero({ user }: { user: User }) {
                 >
                   <Share2 size={16} /> Share
                 </button>
+                <DownloadStoryButton
+                  href={`/u/${handle}/story`}
+                  label="Share to story"
+                />
               </div>
+
+              <p className="mt-2 text-xs text-muted">
+                The story card is perfect for Instagram / TikTok stories.
+              </p>
 
               {/* Mobile-only: phone preview is hidden below lg, so offer a link. */}
               <Link

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, Copy, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import { DownloadStoryButton } from "@/components/download-story-button";
 
 interface StickyShareBarProps {
   slug: string;
@@ -67,6 +68,11 @@ export function StickyShareBar({ slug, cartTitle, ownerHandle }: StickyShareBarP
           {copied ? <Check size={14} /> : <Copy size={14} />}
           <span>{copied ? "Copied" : "Copy"}</span>
         </button>
+        <DownloadStoryButton
+          href={`/c/${slug}/story`}
+          label="Story"
+          className="min-h-0 flex-1 border-cream/20 bg-cream/10 px-3 py-1.5 text-cream hover:bg-cream/15 focus-visible:ring-offset-ink sm:flex-none"
+        />
         <button
           type="button"
           onClick={handleShare}

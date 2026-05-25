@@ -5,6 +5,7 @@ import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { DownloadStoryButton } from "@/components/download-story-button";
 
 export function ShareSheet({ slug, children }: { slug: string; children: React.ReactNode }) {
   const [copied, setCopied] = useState(false);
@@ -47,6 +48,16 @@ export function ShareSheet({ slug, children }: { slug: string; children: React.R
           <p className="text-center text-sm text-muted">
             Scan with a phone camera, or share the link on WhatsApp / Instagram / Twitter.
           </p>
+          <div className="border-t border-rule pt-4">
+            <DownloadStoryButton
+              href={`/c/${slug}/story`}
+              label="Download story card"
+              className="w-full"
+            />
+            <p className="mt-2 text-center text-xs text-muted">
+              Perfect for Instagram / TikTok stories.
+            </p>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
