@@ -28,7 +28,7 @@ export function MobileTabBar({ authed }: { authed: boolean }) {
   return (
     <nav
       aria-label="Mobile navigation"
-      className="fixed bottom-0 inset-x-0 z-30 border-t border-rule bg-cream/95 backdrop-blur sm:hidden"
+      className="fixed bottom-0 inset-x-0 z-30 border-t border-rule bg-cream sm:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="flex items-stretch justify-around h-16 px-2">
