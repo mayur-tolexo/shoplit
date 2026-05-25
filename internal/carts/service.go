@@ -112,7 +112,8 @@ func (s *Service) GetPublicCart(ctx context.Context, slug string, viewerUserID i
 	}
 	// Private carts are visible only to their owner; everyone else gets a
 	// not-found (same as a nonexistent cart — no "this is private" leak).
-	if cart.Visibility == "private" && viewerUserID != cart.UserID {
+	// Fail closed: anything not explicitly "public" is treated as owner-only.
+	if cart.Visibility != "public" && viewerUserID != cart.UserID {
 		return sqlcgen.Cart{}, nil, sqlcgen.User{}, ErrNotFound
 	}
 	items, err := s.q.ListCartItems(ctx, cart.ID)
