@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, Link2 } from "lucide-react";
+import { Check, Eye, MousePointerClick, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Cart } from "@/lib/types";
 import { CartCover } from "@/components/cart-cover";
@@ -49,25 +49,33 @@ export function CartCard({ cart, href, showCopy = true }: CartCardProps) {
           sizes="(max-width: 768px) 100vw, 33vw"
           imageClassName="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
         />
-        {showCopy && (
-          <button
-            type="button"
-            onClick={handleCopy}
-            aria-label={`Copy link to ${cart.title}`}
-            className="absolute top-2 right-2 flex items-center gap-1.5 rounded-full bg-ink/85 text-cream px-3 py-1.5 text-xs font-medium backdrop-blur opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity hover:bg-ink"
-          >
-            {copied ? <Check size={12} /> : <Link2 size={12} />}
-            {copied ? "Copied" : "Copy link"}
-          </button>
-        )}
       </div>
-      <div className="p-5">
-        <h3 className="font-serif text-xl mb-1 line-clamp-2">{cart.title}</h3>
-        <p className="text-sm text-muted">
-          {cart.products.length} {cart.products.length === 1 ? "product" : "products"}
-          {" · "}{cart.viewsLast7d.toLocaleString()} views (7d)
-          {" · "}{cart.clicksLast7d.toLocaleString()} clicks (7d)
-        </p>
+      <div className="p-4">
+        <h3 className="font-serif text-lg mb-2 line-clamp-2">{cart.title}</h3>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 text-xs text-muted">
+            <span className="inline-flex items-center gap-1">
+              <Eye size={13} /> {cart.viewsLast7d.toLocaleString()}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <MousePointerClick size={13} /> {cart.clicksLast7d.toLocaleString()}
+            </span>
+            <span className="text-muted/70">
+              · {cart.products.length} {cart.products.length === 1 ? "item" : "items"}
+            </span>
+          </div>
+          {showCopy && (
+            <button
+              type="button"
+              onClick={handleCopy}
+              aria-label={`Copy link to ${cart.title}`}
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-rule px-3 py-1.5 text-xs font-medium hover:border-ink hover:bg-paper transition-colors"
+            >
+              {copied ? <Check size={13} /> : <Share2 size={13} />}
+              {copied ? "Copied" : "Share"}
+            </button>
+          )}
+        </div>
       </div>
     </Link>
   );
