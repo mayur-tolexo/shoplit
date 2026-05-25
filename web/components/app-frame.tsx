@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { DesktopRail } from "@/components/desktop-rail";
 import { MobileTabBar } from "@/components/mobile-tab-bar";
+import { isAppRoute } from "@/lib/app-routes";
 import type { User } from "@/lib/types";
 
 // Global app chrome wrapper, rendered once from the root layout. It owns the
@@ -11,20 +12,10 @@ import type { User } from "@/lib/types";
 // per-route. `children` (incl. the top NavBar) render inside the rail-padded
 // column.
 //
-// `showShell` mirrors MobileTabBar's isPrimaryRoute idiom: only signed-in
-// viewers on a primary app route get the rail + content padding. On /c/[slug],
-// /login, the marketing home, etc. there's no rail and no padding. The
-// lg:pl-56 only applies at lg+, so below lg there is no padding effect and the
-// rail is `hidden` — mobile/tablet UX is fully preserved.
-function isAppRoute(pathname: string): boolean {
-  return (
-    pathname === "/discover" ||
-    pathname === "/add" ||
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/u/")
-  );
-}
-
+// `showShell` (signed-in viewer on a primary app route) gates the rail + the
+// content offset. The rail sits on the RIGHT, so content gets lg:pr-56 (only at
+// lg+). On /c/[slug], /login, the marketing home, etc. there's no rail and no
+// offset; below lg the rail is `hidden`, so mobile/tablet UX is fully preserved.
 export function AppFrame({
   user,
   children,
@@ -37,7 +28,7 @@ export function AppFrame({
 
   return (
     <>
-      <div className={showShell ? "lg:pl-56" : undefined}>{children}</div>
+      <div className={showShell ? "lg:pr-56" : undefined}>{children}</div>
       {showShell && user && <DesktopRail user={user} />}
       <MobileTabBar user={user} />
     </>
