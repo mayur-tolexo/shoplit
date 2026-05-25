@@ -9,6 +9,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
+	"github.com/mayur-tolexo/shoplit/internal/analytics"
+	"github.com/mayur-tolexo/shoplit/internal/httpx"
 )
 
 // RegisterRoutes mounts /go/{slug} and /p/{slug} (both call the same handler).
@@ -30,9 +32,12 @@ func redirectHandler(svc *Service) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		// Fire-and-forget click logging (use Background so it survives
-		// the request context being cancelled by the response being sent).
-		go svc.LogClick(context.Background(), link, detectUAKind(r), refererHost(r))
+		// Don't count the owner's own clicks on their own cart. Record a
+		// salted visitor hash for unique-reach (raw IP is never stored).
+		if svc.ViewerID(r) != link.UserID {
+			vhash := analytics.VisitorHash(httpx.ClientIP(r), svc.Salt())
+			go svc.LogClick(context.Background(), link, detectUAKind(r), refererHost(r), vhash)
+		}
 		http.Redirect(w, r, target, http.StatusFound)
 	}
 }

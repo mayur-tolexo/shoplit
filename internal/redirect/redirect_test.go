@@ -49,7 +49,7 @@ func setup(t *testing.T) (http.Handler, *sqlcgen.Queries) {
 	require.NoError(t, err)
 
 	r := chi.NewRouter()
-	redirect.RegisterRoutes(r, redirect.NewService(q))
+	redirect.RegisterRoutes(r, redirect.NewService(q, nil, "test-salt"))
 	return r, q
 }
 
