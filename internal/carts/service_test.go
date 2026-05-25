@@ -100,3 +100,58 @@ func TestService_GetPublicCart(t *testing.T) {
 	assert.Empty(t, items)
 	assert.Equal(t, "Test User", user.DisplayName)
 }
+
+func TestService_NewCartDefaultsPublic(t *testing.T) {
+	svc, uid := setupSvc(t)
+	ctx := context.Background()
+	cart, err := svc.CreateCart(ctx, uid, "Defaults")
+	require.NoError(t, err)
+	assert.Equal(t, "public", cart.Visibility)
+}
+
+func TestService_UpdateVisibility(t *testing.T) {
+	svc, uid := setupSvc(t)
+	ctx := context.Background()
+	cart, _ := svc.CreateCart(ctx, uid, "Toggle me")
+
+	priv := "private"
+	updated, err := svc.UpdateCart(ctx, uid, cart.ID, carts.UpdatePatch{Visibility: &priv})
+	require.NoError(t, err)
+	assert.Equal(t, "private", updated.Visibility)
+
+	pub := "public"
+	updated, err = svc.UpdateCart(ctx, uid, cart.ID, carts.UpdatePatch{Visibility: &pub})
+	require.NoError(t, err)
+	assert.Equal(t, "public", updated.Visibility)
+}
+
+func TestService_GetPublicCart_PrivateGate(t *testing.T) {
+	svc, uid := setupSvc(t)
+	ctx := context.Background()
+	cart, _ := svc.CreateCart(ctx, uid, "Secret")
+	priv := "private"
+	_, err := svc.UpdateCart(ctx, uid, cart.ID, carts.UpdatePatch{Visibility: &priv})
+	require.NoError(t, err)
+
+	// Owner sees their own private cart.
+	got, _, _, err := svc.GetPublicCart(ctx, cart.Slug, uid)
+	require.NoError(t, err)
+	assert.Equal(t, cart.ID, got.ID)
+
+	// Logged-out viewer (0) → not found.
+	_, _, _, err = svc.GetPublicCart(ctx, cart.Slug, 0)
+	assert.ErrorIs(t, err, carts.ErrNotFound)
+
+	// A different user → not found.
+	_, _, _, err = svc.GetPublicCart(ctx, cart.Slug, uid+99999)
+	assert.ErrorIs(t, err, carts.ErrNotFound)
+}
+
+func TestService_GetPublicCart_PublicVisibleToAnon(t *testing.T) {
+	svc, uid := setupSvc(t)
+	ctx := context.Background()
+	cart, _ := svc.CreateCart(ctx, uid, "Open")
+	got, _, _, err := svc.GetPublicCart(ctx, cart.Slug, 0)
+	require.NoError(t, err)
+	assert.Equal(t, cart.ID, got.ID)
+}
