@@ -82,18 +82,25 @@ export async function getCartBySlug(slug: string, opts?: AuthOpts): Promise<Cart
 // ─── DISCOVER / FOLLOW CREATORS ───────────────────────────────────────────
 
 type PageOpts = { limit?: number; offset?: number };
+// `q` is search-only — supported by listCreators (see below); pageQuery
+// encodes it alongside limit/offset. URLSearchParams handles percent-encoding
+// of spaces/special chars.
+type CreatorListOpts = PageOpts & { q?: string };
 
-function pageQuery(page?: PageOpts): string {
+function pageQuery(page?: CreatorListOpts): string {
   const sp = new URLSearchParams();
   if (page?.limit !== undefined) sp.set("limit", String(page.limit));
   if (page?.offset !== undefined) sp.set("offset", String(page.offset));
+  if (page?.q !== undefined) sp.set("q", page.q);
   const q = sp.toString();
   return q ? `?${q}` : "";
 }
 
 // Public discover list. `isFollowing` reflects the viewer when a session
 // cookie is forwarded; false otherwise. A page shorter than `limit` is the end.
-export async function listCreators(opts?: AuthOpts, page?: PageOpts): Promise<Creator[]> {
+// Pass `{ q }` to search by handle/display name; an empty/absent `q` returns
+// the popularity-ranked list (the backend trims+ignores blank `q`).
+export async function listCreators(opts?: AuthOpts, page?: CreatorListOpts): Promise<Creator[]> {
   return jsonFetch<Creator[]>(`/api/public/creators${pageQuery(page)}`, opts);
 }
 

@@ -46,6 +46,20 @@ describe("api-client request shapes", () => {
     expect(calls[0].url).toBe(`${API_BASE}/api/public/creators?limit=24&offset=24`);
   });
 
+  it("listCreators encodes q (spaces/special chars) and combines with limit/offset", async () => {
+    const calls = mockFetch({ body: [] });
+    await listCreators({}, { q: "ann & co" });
+    // URLSearchParams encodes space as + and & as %26.
+    expect(calls[0].url).toBe(`${API_BASE}/api/public/creators?q=ann+%26+co`);
+
+    const calls2 = mockFetch({ body: [] });
+    await listCreators({}, { q: "priya", limit: 10, offset: 0 });
+    expect(calls2[0].url).toBe(
+      `${API_BASE}/api/public/creators?limit=10&offset=0&q=priya`,
+    );
+    expect(calls2[0].init.method ?? "GET").toBe("GET");
+  });
+
   it("getCreatorProfile → GET /api/public/creators/{handle}", async () => {
     const calls = mockFetch({ body: { creator: {}, carts: [] } });
     await getCreatorProfile("priya.styles");

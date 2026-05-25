@@ -5,10 +5,12 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/mayur-tolexo/shoplit/internal/auth"
+	sqlcgen "github.com/mayur-tolexo/shoplit/internal/db/sqlc"
 )
 
 // RegisterPublicRoutes mounts the unauthenticated discover/profile endpoints
@@ -32,7 +34,18 @@ func discoverCreators(svc *Service, sm *auth.SessionManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		limit := queryInt(r, "limit")
 		offset := queryInt(r, "offset")
-		rows, err := svc.DiscoverCreators(r.Context(), limit, offset)
+		// q present (after trim) → search; absent/empty → popularity-ranked discover.
+		// Both return DiscoverCreatorsRow, so the marshal path below is shared.
+		q := strings.TrimSpace(r.URL.Query().Get("q"))
+		var (
+			rows []sqlcgen.DiscoverCreatorsRow
+			err  error
+		)
+		if q != "" {
+			rows, err = svc.SearchCreators(r.Context(), q, limit, offset)
+		} else {
+			rows, err = svc.DiscoverCreators(r.Context(), limit, offset)
+		}
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

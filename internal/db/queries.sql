@@ -210,6 +210,34 @@ GROUP BY u.id, u.handle, u.display_name, u.avatar_url
 ORDER BY views_7d DESC, MAX(c.updated_at) DESC, u.id
 LIMIT $1 OFFSET $2;
 
+-- name: SearchCreators :many
+-- Creators (>=1 public, non-archived cart) whose handle or display name matches
+-- the search term. pattern = '%term%' (substring filter); prefix = 'term%'
+-- (prefix matches rank first). Mirrors DiscoverCreators' columns so the handler
+-- can reuse the same row mapping.
+SELECT
+  u.id,
+  u.handle,
+  u.display_name,
+  u.avatar_url,
+  COUNT(DISTINCT c.id)::bigint AS cart_count,
+  (SELECT COUNT(*) FROM follows f WHERE f.creator_id = u.id)::bigint AS follower_count,
+  COALESCE(SUM(cv.views), 0)::bigint AS views_7d
+FROM users u
+JOIN carts c
+  ON c.user_id = u.id AND c.visibility = 'public' AND c.archived_at IS NULL
+LEFT JOIN cart_views_daily cv
+  ON cv.cart_id = c.id AND cv.day >= current_date - 6
+WHERE u.banned_at IS NULL AND u.handle IS NOT NULL
+  AND (u.handle ILIKE sqlc.arg(pattern) OR u.display_name ILIKE sqlc.arg(pattern))
+GROUP BY u.id, u.handle, u.display_name, u.avatar_url
+ORDER BY
+  (u.handle ILIKE sqlc.arg(prefix) OR u.display_name ILIKE sqlc.arg(prefix)) DESC,
+  views_7d DESC,
+  MAX(c.updated_at) DESC,
+  u.id
+LIMIT sqlc.arg(lim) OFFSET sqlc.arg(off);
+
 -- name: ListFollowingCartIDs :many
 -- Public, non-archived carts owned by creators that $1 follows, newest first.
 SELECT c.*
