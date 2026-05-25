@@ -46,7 +46,7 @@ func TestUpload_StoresImageAndReturnsURL(t *testing.T) {
 	req.Header.Set("Content-Type", ct)
 	rr := httptest.NewRecorder()
 
-	uploads.Handler(dir).ServeHTTP(rr, req)
+	uploads.Handler(uploads.NewDiskStore(dir)).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("want 200, got %d (%s)", rr.Code, rr.Body.String())
@@ -72,7 +72,7 @@ func TestUpload_RejectsNonImage(t *testing.T) {
 	req.Header.Set("Content-Type", ct)
 	rr := httptest.NewRecorder()
 
-	uploads.Handler(dir).ServeHTTP(rr, req)
+	uploads.Handler(uploads.NewDiskStore(dir)).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusUnsupportedMediaType {
 		t.Fatalf("want 415 for non-image, got %d", rr.Code)
@@ -88,7 +88,7 @@ func TestUpload_MissingFile(t *testing.T) {
 	req.Header.Set("Content-Type", w.FormDataContentType())
 	rr := httptest.NewRecorder()
 
-	uploads.Handler(dir).ServeHTTP(rr, req)
+	uploads.Handler(uploads.NewDiskStore(dir)).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("want 400 for missing file, got %d", rr.Code)

@@ -10,12 +10,11 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 )
 
 const (
-	maxUploadBytes = 8 << 20 // 8 MiB — generous for a phone photo.
-	sniffLen       = 512     // bytes http.DetectContentType needs.
+	maxUploadBytes = 15 << 20 // 15 MiB — generous for a full-res phone photo.
+	sniffLen       = 512      // bytes http.DetectContentType needs.
 )
 
 // extByType maps the sniffed content type to a safe, server-chosen extension.
@@ -29,14 +28,14 @@ var extByType = map[string]string{
 }
 
 // Handler returns an http.HandlerFunc that accepts a multipart "file" field,
-// validates it is an allowed image, stores it under dir with a random name,
-// and responds {"url":"/uploads/<name>"}. Mount it behind auth.
-func Handler(dir string) http.HandlerFunc {
+// validates it is an allowed image, hands it to the Store with a random name,
+// and responds {"url":"<public url>"}. Mount it behind auth.
+func Handler(store Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Cap the whole request body before reading anything.
 		r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes+1024)
 		if err := r.ParseMultipartForm(maxUploadBytes + 1024); err != nil {
-			http.Error(w, "file too large or malformed (max 8MB)", http.StatusRequestEntityTooLarge)
+			http.Error(w, "file too large or malformed (max 15MB)", http.StatusRequestEntityTooLarge)
 			return
 		}
 		file, _, err := r.FormFile("file")
@@ -46,11 +45,23 @@ func Handler(dir string) http.HandlerFunc {
 		}
 		defer file.Close()
 
+		data, err := io.ReadAll(io.LimitReader(file, maxUploadBytes+1))
+		if err != nil {
+			http.Error(w, "read failed", http.StatusInternalServerError)
+			return
+		}
+		if len(data) > maxUploadBytes {
+			http.Error(w, "image too large (max 15MB)", http.StatusRequestEntityTooLarge)
+			return
+		}
+
 		// Sniff the real content type from the bytes, not the client's claim.
-		head := make([]byte, sniffLen)
-		n, _ := io.ReadFull(file, head)
-		head = head[:n]
-		ext, ok := extByType[http.DetectContentType(head)]
+		sniff := data
+		if len(sniff) > sniffLen {
+			sniff = sniff[:sniffLen]
+		}
+		contentType := http.DetectContentType(sniff)
+		ext, ok := extByType[contentType]
 		if !ok {
 			http.Error(w, "only JPEG, PNG, WebP or GIF images are allowed", http.StatusUnsupportedMediaType)
 			return
@@ -63,29 +74,14 @@ func Handler(dir string) http.HandlerFunc {
 		}
 		name += ext
 
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			http.Error(w, "storage unavailable", http.StatusInternalServerError)
-			return
-		}
-		dst, err := os.Create(filepath.Join(dir, name))
+		url, err := store.Put(r.Context(), name, contentType, data)
 		if err != nil {
-			http.Error(w, "could not store file", http.StatusInternalServerError)
-			return
-		}
-		defer dst.Close()
-
-		// Write the sniffed head, then the rest, bounded again as defence in depth.
-		if _, err := dst.Write(head); err != nil {
-			http.Error(w, "write failed", http.StatusInternalServerError)
-			return
-		}
-		if _, err := io.Copy(dst, io.LimitReader(file, maxUploadBytes)); err != nil {
-			http.Error(w, "write failed", http.StatusInternalServerError)
+			http.Error(w, "could not store image", http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{"url": "/uploads/" + name})
+		_ = json.NewEncoder(w).Encode(map[string]string{"url": url})
 	}
 }
 

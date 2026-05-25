@@ -208,7 +208,8 @@ export async function uploadImage(file: File): Promise<string> {
   });
   if (!res.ok) throw new Error(`upload failed (${res.status})`);
   const data = (await res.json()) as { url: string };
-  return API_BASE + data.url;
+  // S3 returns an absolute URL; the dev disk store returns a relative path.
+  return /^https?:\/\//.test(data.url) ? data.url : API_BASE + data.url;
 }
 
 export async function submitFeedback(input: { message: string; email?: string; name?: string; page?: string }): Promise<void> {
