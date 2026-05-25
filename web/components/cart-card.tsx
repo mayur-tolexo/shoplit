@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, Eye, MousePointerClick, Share2, Users } from "lucide-react";
+import { Check, Eye, Lock, MousePointerClick, Share2, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { Cart } from "@/lib/types";
 import { CartCover } from "@/components/cart-cover";
@@ -49,6 +49,11 @@ export function CartCard({ cart, href, showCopy = true }: CartCardProps) {
           sizes="(max-width: 768px) 100vw, 33vw"
           imageClassName="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
         />
+        {cart.visibility === "private" && (
+          <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-ink/85 text-cream px-2 py-0.5 text-[11px] font-medium backdrop-blur-sm">
+            <Lock size={11} aria-hidden /> Private
+          </span>
+        )}
       </div>
       <div className="p-4">
         <h3 className="font-serif text-lg mb-2 line-clamp-2">{cart.title}</h3>
