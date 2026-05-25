@@ -44,14 +44,14 @@ export function ProductCard({ product, eagerImage = false }: ProductCardProps) {
           {retailerLabel(product.retailer)}
         </span>
       </div>
-      <div className="flex flex-1 flex-col p-3 sm:p-4">
+      <div className="flex flex-1 flex-col p-2.5 sm:p-4">
         <h3 className="font-serif text-sm sm:text-base leading-snug line-clamp-2 mb-1">{product.title}</h3>
         {product.note && (
-          <p className="italic text-xs text-muted line-clamp-1 mb-1.5">&ldquo;{product.note}&rdquo;</p>
+          <p className="italic text-xs text-muted line-clamp-1 mb-1">&ldquo;{product.note}&rdquo;</p>
         )}
-        <div className="mt-auto flex items-center justify-between pt-2">
-          <span className="text-sm font-medium text-ink">{product.priceText || " "}</span>
-          <span className="inline-flex items-center gap-0.5 text-xs font-medium text-accent transition-all group-hover:gap-1.5">
+        <div className="mt-auto flex items-center justify-between gap-2 pt-1.5">
+          <span className="text-sm font-semibold text-ink truncate">{product.priceText || " "}</span>
+          <span className="inline-flex items-center gap-0.5 text-xs font-medium text-accent shrink-0 transition-all group-hover:gap-1.5">
             Shop <ArrowUpRight size={14} aria-hidden />
           </span>
         </div>

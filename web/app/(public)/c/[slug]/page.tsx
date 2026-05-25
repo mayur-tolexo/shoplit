@@ -55,8 +55,15 @@ export default async function PublicCartPage({ params }: { params: { slug: strin
         </div>
       </section>
 
+      {/* PRODUCT COUNT (identity already shown in the hero) */}
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 pt-6">
+        <p className="text-sm text-muted">
+          {cart.products.length} {cart.products.length === 1 ? "product" : "products"}
+        </p>
+      </div>
+
       {/* PRODUCTS */}
-      <section className="mx-auto max-w-4xl px-4 sm:px-6 py-12">
+      <section className="mx-auto max-w-4xl px-4 sm:px-6 pt-8 pb-12">
         {cart.products.length === 0 ? (
           <p className="text-center text-muted py-16">This cart is still being curated. Check back soon.</p>
         ) : (

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUp, ArrowDown, Check, ExternalLink, GripVertical, Pencil, Share2, Trash2, X } from "lucide-react";
+import { ArrowUp, ArrowDown, Check, ExternalLink, Eye, GripVertical, Pencil, Share2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   DndContext,
@@ -26,12 +26,13 @@ import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { ColorPicker } from "@/components/color-picker";
 import { PhoneFrame } from "@/components/phone-frame";
-import { ProductCard } from "@/components/product-card";
 import { PasteUrlPreview } from "@/components/paste-url-preview";
 import { ShareSheet } from "@/components/share-sheet";
 import { CartCover } from "@/components/cart-cover";
 import { CoverPicker } from "@/components/cover-picker";
 import { ImageUploadButton } from "@/components/image-upload-button";
+import { EditorSection } from "@/components/editor-section";
+import { CartPreviewSheet } from "@/components/cart-preview-sheet";
 import {
   Dialog,
   DialogClose,
@@ -54,6 +55,7 @@ import type { Cart, Product } from "@/lib/types";
 export function CartEditor({ initialCart }: { initialCart: Cart }) {
   const router = useRouter();
   const [cart, setCart] = useState<Cart>(initialCart);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   // Debounced save: local state is the source of truth while editing. We
@@ -179,92 +181,62 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6 pb-24">
       {/* HEADER */}
-      <div className="flex items-center justify-between mb-6 gap-4">
-        <div className="min-w-0">
-          <Link href="/dashboard" className="text-sm text-muted hover:text-ink">← Back to carts</Link>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <Link href="/dashboard" className="text-sm text-muted hover:text-ink shrink-0">← Carts</Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className="lg:hidden inline-flex items-center gap-1.5 rounded-full border border-ink px-4 py-2 text-sm font-medium hover:bg-paper transition-colors"
+          >
+            <Eye size={15} /> Preview
+          </button>
+          <ShareSheet slug={cart.slug}>
+            <Button variant="default"><Share2 size={16} /> Share</Button>
+          </ShareSheet>
         </div>
-        <ShareSheet slug={cart.slug}>
-          <Button variant="default"><Share2 size={16} /> Share</Button>
-        </ShareSheet>
+      </div>
+
+      {/* Editable title */}
+      <div className="group/title relative mb-6">
+        <input
+          type="text"
+          value={cart.title}
+          onChange={(e) => patch({ title: e.target.value })}
+          placeholder="Untitled cart"
+          aria-label="Cart title"
+          className="w-full bg-transparent font-serif text-3xl sm:text-4xl tracking-tight px-0 py-1 border-0 border-b-2 border-transparent group-hover/title:border-rule focus:border-accent focus:outline-none transition-colors placeholder:text-muted/60"
+        />
       </div>
 
       <div className="grid lg:grid-cols-[1.4fr_1fr] gap-10">
-        {/* LEFT — EDITOR */}
-        <div className="space-y-8">
-          {/* Cover image */}
-          <section>
-            <h2 className="font-serif text-2xl mb-3">Cover image</h2>
-            <div className="relative aspect-[16/10] rounded-xl overflow-hidden border border-rule bg-paper mb-4">
-              <CartCover coverImageUrl={cart.coverImageUrl} accentHex={cart.accentHex} title={cart.title} />
-            </div>
-            <CoverPicker
-              value={cart.coverImageUrl}
-              accentHex={cart.accentHex}
-              title={cart.title}
-              onChange={(url) => patch({ coverImageUrl: url })}
-            />
-          </section>
-
-          {/* Title — styled as a heading; subtle hover indicates editability */}
-          <section className="space-y-4">
-            <div className="group/title relative">
-              <span className="sr-only">Cart title</span>
-              <input
-                type="text"
-                value={cart.title}
-                onChange={(e) => patch({ title: e.target.value })}
-                placeholder="Untitled cart"
-                aria-label="Cart title"
-                className="w-full bg-transparent font-serif text-3xl sm:text-4xl tracking-tight px-0 py-2 border-0 border-b-2 border-transparent group-hover/title:border-rule focus:border-accent focus:outline-none transition-colors placeholder:text-muted/60"
-              />
-              <p className="text-[11px] uppercase tracking-widest text-muted/70 opacity-0 group-hover/title:opacity-100 group-focus-within/title:opacity-100 transition-opacity mt-1">
-                Click to edit · changes save as you type
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2 text-muted">Bio</label>
-              <textarea
-                value={cart.bio ?? ""}
-                onChange={(e) => patch({ bio: e.target.value })}
-                rows={3}
-                placeholder="Tell your followers about this cart"
-                className="w-full rounded-md border border-rule bg-cream px-3 py-2 leading-relaxed focus:outline-none focus:ring-2 focus:ring-accent"
-              />
-            </div>
-          </section>
-
-          {/* Accent color */}
-          <section>
-            <h2 className="font-serif text-2xl mb-3">Accent color</h2>
-            <ColorPicker value={cart.accentHex} onChange={(hex) => patch({ accentHex: hex })} />
-          </section>
-
-          {/* Add product */}
+        {/* LEFT — editor */}
+        <div className="space-y-6">
+          {/* PRODUCTS — the core task, first */}
           <section>
             <h2 className="font-serif text-2xl mb-4">Add a product</h2>
             <PasteUrlPreview onResolved={addProduct} />
-          </section>
 
-          {/* Products */}
-          <section>
-            <h2 className="font-serif text-2xl mb-3">Products ({cart.products.length})</h2>
+            <div className="flex items-center justify-between mt-6 mb-3">
+              <h2 className="font-serif text-2xl">Products ({cart.products.length})</h2>
+              <Link
+                href={`/c/${cart.slug}`}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex items-center gap-1 text-sm text-ink underline-offset-4 hover:underline"
+              >
+                View live <ExternalLink size={14} />
+              </Link>
+            </div>
 
             {cart.products.length === 0 && (
               <p className="text-sm text-muted">No products yet. Paste a link above to add your first product.</p>
             )}
 
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={cart.products.map((p) => p.id)}
-                strategy={verticalListSortingStrategy}
-              >
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={cart.products.map((p) => p.id)} strategy={verticalListSortingStrategy}>
                 <ul className="space-y-2">
                   {cart.products.map((p, i) => (
                     <SortableProductRow
@@ -283,20 +255,38 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
             </DndContext>
           </section>
 
-          <div className="text-sm">
-            <Link
-              href={`/c/${cart.slug}`}
-              target="_blank"
-              rel="noopener"
-              className="inline-flex items-center gap-1 text-ink underline-offset-4 hover:underline"
-            >
-              View live <ExternalLink size={14} />
-            </Link>
-          </div>
+          {/* COVER & LOOK */}
+          <EditorSection title="Cover & look" defaultOpen={!cart.coverImageUrl}>
+            <div className="relative aspect-[16/10] rounded-xl overflow-hidden border border-rule bg-paper mb-4">
+              <CartCover coverImageUrl={cart.coverImageUrl} accentHex={cart.accentHex} title={cart.title} />
+            </div>
+            <CoverPicker
+              value={cart.coverImageUrl}
+              accentHex={cart.accentHex}
+              title={cart.title}
+              onChange={(url) => patch({ coverImageUrl: url })}
+            />
+            <div className="pt-2">
+              <p className="text-sm font-medium mb-2">Accent color</p>
+              <ColorPicker value={cart.accentHex} onChange={(hex) => patch({ accentHex: hex })} />
+            </div>
+          </EditorSection>
 
-          {/* Danger zone */}
-          <section className="border-t border-rule pt-6 mt-8">
-            <h2 className="text-sm font-medium mb-1">Delete this cart</h2>
+          {/* CART DETAILS */}
+          <EditorSection title="Cart details">
+            <label className="block text-sm font-medium mb-2 text-muted">Bio</label>
+            <textarea
+              value={cart.bio ?? ""}
+              onChange={(e) => patch({ bio: e.target.value })}
+              rows={3}
+              placeholder="Tell your followers about this cart"
+              className="w-full rounded-md border border-rule bg-cream px-3 py-2 leading-relaxed focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+          </EditorSection>
+
+          {/* SETTINGS / DANGER */}
+          <EditorSection title="Settings">
+            <h3 className="text-sm font-medium mb-1">Delete this cart</h3>
             <p className="text-sm text-muted mb-3">
               Its share link will stop working and it&apos;ll disappear from your dashboard. This can&apos;t be undone.
             </p>
@@ -311,16 +301,14 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Delete “{cart.title}”?</DialogTitle>
+                  <DialogTitle>Delete &ldquo;{cart.title}&rdquo;?</DialogTitle>
                   <DialogDescription>
                     The link <span className="font-mono">/c/{cart.slug}</span> will stop working and the cart leaves your dashboard. This can&apos;t be undone.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="flex justify-end gap-2 mt-4">
                   <DialogClose asChild>
-                    <button type="button" className="rounded-full px-4 py-2 text-sm text-muted hover:text-ink">
-                      Cancel
-                    </button>
+                    <button type="button" className="rounded-full px-4 py-2 text-sm text-muted hover:text-ink">Cancel</button>
                   </DialogClose>
                   <button
                     type="button"
@@ -333,45 +321,31 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
                 </div>
               </DialogContent>
             </Dialog>
-          </section>
+          </EditorSection>
         </div>
 
-        {/* RIGHT — PREVIEW */}
+        {/* RIGHT — desktop sticky preview */}
         <div className="hidden lg:block sticky top-24 self-start">
           <p className="text-sm text-muted text-center mb-3">Live preview</p>
           <PhoneFrame>
-            <PreviewCartPage cart={cart} />
+            <CartPreviewSheet cart={cart} />
           </PhoneFrame>
         </div>
       </div>
-    </div>
-  );
-}
 
-function PreviewCartPage({ cart }: { cart: Cart }) {
-  return (
-    <div style={{ ["--accent" as string]: cart.accentHex } as React.CSSProperties}>
-      <div className="relative aspect-[5/4]">
-        <CartCover coverImageUrl={cart.coverImageUrl} accentHex={cart.accentHex} title={cart.title} />
-        <div className="absolute inset-0 bg-ink/30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/60 to-transparent" />
-        <div className="absolute bottom-3 left-3 right-3 text-cream [text-shadow:0_1px_10px_rgba(0,0,0,0.85)]">
-          <p className="text-xs font-medium">@{cart.ownerHandle}</p>
-          <p className="font-serif text-xl leading-tight">{cart.title}</p>
-        </div>
-      </div>
-      <div className="p-3">
-        {cart.products.length === 0 ? (
-          <p className="text-xs text-muted text-center py-6">No products yet.</p>
-        ) : (
-          <div className="grid grid-cols-2 gap-2">
-            {cart.products.slice(0, 4).map((p) => <ProductCard key={p.id} product={p} />)}
-          </div>
-        )}
-        {cart.products.length > 4 && (
-          <p className="text-center text-xs text-muted mt-3">+ {cart.products.length - 4} more on the live page</p>
-        )}
-      </div>
+      {/* MOBILE full-screen preview */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-full w-screen h-[100dvh] p-0 gap-0 rounded-none overflow-y-auto [&>button:last-child]:hidden">
+          <DialogHeader className="sticky top-0 z-10 flex-row items-center justify-between bg-cream/95 backdrop-blur border-b border-rule px-4 py-3 space-y-0">
+            <DialogTitle className="font-serif text-lg">Preview</DialogTitle>
+            <DialogClose asChild>
+              <button type="button" aria-label="Close preview" className="text-muted hover:text-ink"><X size={20} /></button>
+            </DialogClose>
+          </DialogHeader>
+          <DialogDescription className="sr-only">A preview of how your cart looks to followers.</DialogDescription>
+          <CartPreviewSheet cart={cart} fullPage />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
