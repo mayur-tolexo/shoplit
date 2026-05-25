@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { getCreatorProfile } from "@/lib/api-client";
@@ -68,7 +69,16 @@ export default async function CreatorProfilePage({
             </p>
           </div>
           <div className="shrink-0">
-            <FollowButton creator={creator} />
+            {creator.isSelf ? (
+              <p className="text-sm text-muted">
+                This is your profile ·{" "}
+                <Link href="/dashboard" className="text-ink underline-offset-4 hover:underline">
+                  Dashboard
+                </Link>
+              </p>
+            ) : (
+              <FollowButton creator={creator} />
+            )}
           </div>
         </header>
 

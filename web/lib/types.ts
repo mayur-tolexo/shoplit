@@ -20,7 +20,9 @@ export interface User {
 
 // A creator surfaced in Discover / on a profile header. A user only becomes a
 // "creator" once they have >=1 public, non-archived cart. `isFollowing`
-// reflects the *viewer's* relationship (false when logged out).
+// reflects the *viewer's* relationship (false when logged out). `isSelf` is true
+// only on the profile endpoint when the logged-in viewer is the creator (the UI
+// then hides the Follow button); it is absent/false for discover/search rows.
 export interface Creator {
   handle: string;
   displayName: string;
@@ -28,6 +30,7 @@ export interface Creator {
   cartCount: number;
   followerCount: number;
   isFollowing: boolean;
+  isSelf?: boolean;
 }
 
 export interface Product {

@@ -54,25 +54,29 @@ func clampPage(limit, offset int32) (int32, int32) {
 }
 
 // DiscoverCreators returns creators (users with >=1 public cart) ranked by
-// 7-day cart views. isFollowing is left false here; the handler fills it in
-// per viewer (or leaves it false for anonymous viewers).
-func (s *Service) DiscoverCreators(ctx context.Context, limit, offset int32) ([]sqlcgen.DiscoverCreatorsRow, error) {
+// 7-day cart views, excluding viewerID (the logged-in viewer never appears in
+// their own discover list; an anonymous viewer passes 0, which matches no real
+// user). isFollowing is left false here; the handler fills it in per viewer (or
+// leaves it false for anonymous viewers).
+func (s *Service) DiscoverCreators(ctx context.Context, viewerID int64, limit, offset int32) ([]sqlcgen.DiscoverCreatorsRow, error) {
 	limit, offset = clampPage(limit, offset)
-	return s.q.DiscoverCreators(ctx, sqlcgen.DiscoverCreatorsParams{Limit: limit, Offset: offset})
+	return s.q.DiscoverCreators(ctx, sqlcgen.DiscoverCreatorsParams{ViewerID: viewerID, Lim: limit, Off: offset})
 }
 
 // SearchCreators returns creators (users with >=1 public cart) whose handle or
-// display name matches q, ranked prefix-first then by 7-day cart views. It
-// mirrors DiscoverCreators' pagination and returns the same row type so the
+// display name matches q, ranked prefix-first then by 7-day cart views,
+// excluding viewerID (same self-exclusion as DiscoverCreators; 0 = anonymous).
+// It mirrors DiscoverCreators' pagination and returns the same row type so the
 // handler reuses one marshal path; isFollowing is filled per viewer there.
-func (s *Service) SearchCreators(ctx context.Context, q string, limit, offset int32) ([]sqlcgen.DiscoverCreatorsRow, error) {
+func (s *Service) SearchCreators(ctx context.Context, viewerID int64, q string, limit, offset int32) ([]sqlcgen.DiscoverCreatorsRow, error) {
 	limit, offset = clampPage(limit, offset)
 	esc := escapeLike(strings.TrimSpace(q))
 	rows, err := s.q.SearchCreators(ctx, sqlcgen.SearchCreatorsParams{
-		Pattern: pgText("%" + esc + "%"),
-		Prefix:  pgText(esc + "%"),
-		Lim:     limit,
-		Off:     offset,
+		ViewerID: viewerID,
+		Pattern:  pgText("%" + esc + "%"),
+		Prefix:   pgText(esc + "%"),
+		Lim:      limit,
+		Off:      offset,
 	})
 	if err != nil {
 		return nil, err
@@ -133,8 +137,11 @@ func (s *Service) GetCreatorProfile(ctx context.Context, handle string, viewerID
 		return CreatorJSON{}, nil, err
 	}
 	isFollowing := s.IsFollowing(ctx, viewerID, user.ID)
+	// isSelf is true only when a logged-in viewer (non-zero) is viewing their own
+	// profile — the frontend hides the Follow button in that case.
+	isSelf := viewerID != 0 && viewerID == user.ID
 
-	creator = MarshalCreatorProfile(user, len(cartRows), int(followerCount), isFollowing)
+	creator = MarshalCreatorProfile(user, len(cartRows), int(followerCount), isFollowing, isSelf)
 	return creator, cartsJSON, nil
 }
 
