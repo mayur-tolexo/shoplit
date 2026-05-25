@@ -20,12 +20,19 @@ type Querier interface {
 	CartReach7d(ctx context.Context, cartID pgtype.Int8) (int64, error)
 	// ─── ANALYTICS (reads) ──────────────────────────────────────────────────────
 	CartViews7d(ctx context.Context, cartID int64) (int64, error)
+	CountFollowers(ctx context.Context, creatorID int64) (int64, error)
 	// ─── CARTS ──────────────────────────────────────────────────────────────────
 	CreateCart(ctx context.Context, arg CreateCartParams) (Cart, error)
 	// ─── EXTENSION TOKENS ────────────────────────────────────────────────────────
 	CreateExtensionToken(ctx context.Context, arg CreateExtensionTokenParams) error
 	// ─── LINKS ──────────────────────────────────────────────────────────────────
 	CreateLink(ctx context.Context, arg CreateLinkParams) (Link, error)
+	// Creators (users with >=1 public, non-archived cart) ranked by 7-day cart
+	// views. cart_count counts public carts; follower_count via correlated
+	// subquery to avoid join fan-out.
+	DiscoverCreators(ctx context.Context, arg DiscoverCreatorsParams) ([]DiscoverCreatorsRow, error)
+	// ─── FOLLOWS / CREATORS ──────────────────────────────────────────────────────
+	FollowCreator(ctx context.Context, arg FollowCreatorParams) error
 	GetCartByID(ctx context.Context, id int64) (Cart, error)
 	// No is_public/visibility filter here: the service gates private carts so the
 	// OWNER can still fetch their own. archived carts remain excluded.
@@ -33,6 +40,7 @@ type Querier interface {
 	GetExtensionTokenByHash(ctx context.Context, tokenHash string) (GetExtensionTokenByHashRow, error)
 	GetLinkBySlug(ctx context.Context, slug string) (Link, error)
 	GetUserByGoogleSub(ctx context.Context, googleSub pgtype.Text) (User, error)
+	GetUserByHandle(ctx context.Context, handle pgtype.Text) (User, error)
 	// internal/db/queries.sql
 	// ─── USERS ──────────────────────────────────────────────────────────────────
 	GetUserByID(ctx context.Context, id int64) (User, error)
@@ -40,9 +48,13 @@ type Querier interface {
 	InsertClickEvent(ctx context.Context, arg InsertClickEventParams) error
 	// ─── FEEDBACK ────────────────────────────────────────────────────────────────
 	InsertFeedback(ctx context.Context, arg InsertFeedbackParams) error
+	IsFollowing(ctx context.Context, arg IsFollowingParams) (bool, error)
 	ListCartItems(ctx context.Context, cartID int64) ([]ListCartItemsRow, error)
 	ListCartsByUser(ctx context.Context, userID int64) ([]Cart, error)
 	ListFeedback(ctx context.Context) ([]Feedback, error)
+	// Public, non-archived carts owned by creators that $1 follows, newest first.
+	ListFollowingCartIDs(ctx context.Context, arg ListFollowingCartIDsParams) ([]Cart, error)
+	ListPublicCartsByUser(ctx context.Context, userID int64) ([]Cart, error)
 	// Distinct cover images the user has used across their carts, most-recent
 	// first — powers the "your covers" section of the cover picker.
 	ListUserCoverImages(ctx context.Context, userID int64) ([]ListUserCoverImagesRow, error)
@@ -50,6 +62,7 @@ type Querier interface {
 	RemoveCartItem(ctx context.Context, arg RemoveCartItemParams) error
 	ReorderCartItem(ctx context.Context, arg ReorderCartItemParams) error
 	TouchExtensionToken(ctx context.Context, id int64) error
+	UnfollowCreator(ctx context.Context, arg UnfollowCreatorParams) error
 	UpdateCart(ctx context.Context, arg UpdateCartParams) (Cart, error)
 	// Edit a product's display fields (the URL/retailer live on the link and stay
 	// immutable — changing those is effectively a different product).

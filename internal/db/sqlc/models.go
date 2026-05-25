@@ -77,6 +77,12 @@ type Feedback struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
+type Follow struct {
+	FollowerID int64              `json:"follower_id"`
+	CreatorID  int64              `json:"creator_id"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+}
+
 type Link struct {
 	ID          int64              `json:"id"`
 	Slug        string             `json:"slug"`
