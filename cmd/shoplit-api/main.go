@@ -116,7 +116,7 @@ func run() error {
 
 	// Public, unauthenticated read endpoints
 	r.Route("/api/public", func(r chi.Router) {
-		publicapi.RegisterRoutes(r, svc)
+		publicapi.RegisterRoutes(r, svc, sm)
 		r.Post("/feedback", fb.Handler())
 	})
 

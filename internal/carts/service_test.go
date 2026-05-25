@@ -94,7 +94,7 @@ func TestService_GetPublicCart(t *testing.T) {
 	ctx := context.Background()
 	cart, _ := svc.CreateCart(ctx, uid, "Public Cart")
 
-	gotCart, items, user, err := svc.GetPublicCart(ctx, cart.Slug)
+	gotCart, items, user, err := svc.GetPublicCart(ctx, cart.Slug, 0)
 	require.NoError(t, err)
 	assert.Equal(t, cart.ID, gotCart.ID)
 	assert.Empty(t, items)
