@@ -4,6 +4,7 @@ import {
   followCreator,
   getCreatorProfile,
   getFollowingFeed,
+  getInsights,
   listCreators,
   unfollowCreator,
 } from "./api-client";
@@ -100,5 +101,20 @@ describe("api-client request shapes", () => {
     const calls = mockFetch({ body: [] });
     await getFollowingFeed(undefined, { limit: 10, offset: 5 });
     expect(calls[0].url).toBe(`${API_BASE}/api/v1/following?limit=10&offset=5`);
+  });
+
+  it("getInsights → GET /api/v1/insights and unwraps the daily array", async () => {
+    const daily = [{ date: "2026-05-25", views: 3, clicks: 1 }];
+    const calls = mockFetch({ body: { daily } });
+    const r = await getInsights();
+    expect(calls[0].url).toBe(`${API_BASE}/api/v1/insights`);
+    expect(calls[0].init.method ?? "GET").toBe("GET");
+    expect(r).toEqual(daily);
+  });
+
+  it("getInsights returns [] when the daily field is absent", async () => {
+    mockFetch({ body: {} });
+    const r = await getInsights();
+    expect(r).toEqual([]);
   });
 });

@@ -59,6 +59,15 @@ export interface Cart {
   updatedAt: string;       // ISO
 }
 
+// One day in the account-wide daily activity series powering the dashboard
+// insights. The /api/v1/insights endpoint returns exactly 14 of these,
+// ascending by date, zero-filled for days with no activity.
+export interface DailyStat {
+  date: string;            // "YYYY-MM-DD"
+  views: number;
+  clicks: number;
+}
+
 export interface OGResult {
   ok: boolean;
   canonicalUrl?: string;   // final URL after following redirects (short links)
