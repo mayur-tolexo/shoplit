@@ -32,7 +32,7 @@ export function MobileBottomNav() {
         <CenterAction href="/add" />
         <NavItem
           href="/dashboard/following"
-          label="Following"
+          label="Feed"
           icon={<Rss size={20} />}
           active={pathname === "/dashboard/following"}
         />

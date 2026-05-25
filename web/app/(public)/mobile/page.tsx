@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MarketingNav } from "@/components/marketing-nav";
-import { Footer } from "@/components/footer";
 import { Smartphone, Apple, Share2, ImageIcon } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -25,10 +23,8 @@ const iosSteps = [
 
 export default function MobileGuidePage() {
   return (
-    <>
-      <MarketingNav />
-      <main className="mx-auto max-w-2xl px-4 sm:px-6 py-16">
-        {/* HERO */}
+    <div className="mx-auto max-w-2xl px-4 sm:px-6 py-16">
+      {/* HERO */}
         <div className="text-center mb-10">
           <span
             className="inline-grid place-items-center size-14 rounded-2xl text-accent mb-4"
@@ -107,8 +103,6 @@ export default function MobileGuidePage() {
             No account yet? Create one free
           </Link>
         </div>
-      </main>
-      <Footer />
-    </>
+    </div>
   );
 }

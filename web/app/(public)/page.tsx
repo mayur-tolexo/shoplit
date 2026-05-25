@@ -1,7 +1,5 @@
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
-import { MarketingNav } from "@/components/marketing-nav";
-import { Footer } from "@/components/footer";
 import { CartCard } from "@/components/cart-card";
 import { CartCover } from "@/components/cart-cover";
 import { RevealOnScroll } from "@/components/reveal-on-scroll";
@@ -21,9 +19,7 @@ export default async function LandingPage() {
   }
   return (
     <>
-      <MarketingNav />
-      <main>
-        {/* HERO — animated gradient background + cascading phone mockups */}
+      {/* HERO — animated gradient background + cascading phone mockups */}
         <section className="relative overflow-hidden">
           {/* Soft warm gradient blobs (CSS-animated) behind the hero */}
           <div aria-hidden className="absolute inset-0 -z-10 pointer-events-none">
@@ -209,8 +205,6 @@ export default async function LandingPage() {
             </p>
           </div>
         </section>
-      </main>
-      <Footer />
     </>
   );
 }

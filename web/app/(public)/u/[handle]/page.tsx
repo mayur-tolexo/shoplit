@@ -3,8 +3,6 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { getCreatorProfile } from "@/lib/api-client";
-import { MarketingNav } from "@/components/marketing-nav";
-import { Footer } from "@/components/footer";
 import { CartCard } from "@/components/cart-card";
 import { FollowButton } from "@/components/follow-button";
 
@@ -42,10 +40,8 @@ export default async function CreatorProfilePage({
   const { creator, carts } = profile;
 
   return (
-    <>
-      <MarketingNav />
-      <main className="mx-auto max-w-6xl px-4 sm:px-6 pb-24 sm:pb-16">
-        {/* PROFILE HEADER — stacks on mobile, horizontal at sm: */}
+    <div className="mx-auto max-w-6xl px-4 sm:px-6 pb-24 sm:pb-16">
+      {/* PROFILE HEADER — stacks on mobile, horizontal at sm: */}
         <header className="pt-10 pb-8 sm:pt-14 sm:pb-10 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
           {creator.avatarUrl ? (
             <Image
@@ -87,8 +83,6 @@ export default async function CreatorProfilePage({
             ))}
           </div>
         )}
-      </main>
-      <Footer />
-    </>
+    </div>
   );
 }

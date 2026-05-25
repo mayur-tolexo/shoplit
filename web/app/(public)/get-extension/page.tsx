@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MarketingNav } from "@/components/marketing-nav";
-import { Footer } from "@/components/footer";
 import { Puzzle, Monitor, Smartphone } from "lucide-react";
 
 const STORE_URL = "https://chromewebstore.google.com/detail/shoplit-%E2%80%94-add-to-cart/dplbbiamddaaimhjennfncbpbnkfconn";
@@ -26,10 +24,8 @@ const mobileSteps = [
 
 export default function GetExtensionPage() {
   return (
-    <>
-      <MarketingNav />
-      <main className="mx-auto max-w-2xl px-4 sm:px-6 py-16">
-        <div className="text-center mb-10">
+    <div className="mx-auto max-w-2xl px-4 sm:px-6 py-16">
+      <div className="text-center mb-10">
           <span
             className="inline-grid place-items-center size-14 rounded-2xl text-accent mb-4"
             style={{ backgroundColor: "color-mix(in srgb, var(--accent) 12%, transparent)" }}
@@ -117,8 +113,6 @@ export default function GetExtensionPage() {
             See the full mobile guide →
           </Link>
         </p>
-      </main>
-      <Footer />
-    </>
+    </div>
   );
 }

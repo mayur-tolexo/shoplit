@@ -86,7 +86,7 @@ export function NavBar({ variant = "marketing", user }: NavBarProps) {
                 Discover
               </Link>
               <Link href="/dashboard/following" className="text-muted hover:text-ink transition-colors">
-                Following
+                Feed
               </Link>
             </div>
             <DropdownMenu>

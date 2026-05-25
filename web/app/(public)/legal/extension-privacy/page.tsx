@@ -1,14 +1,9 @@
-import { MarketingNav } from "@/components/marketing-nav";
-import { Footer } from "@/components/footer";
-
 export const metadata = { title: "Extension Privacy · shoplit" };
 
 export default function ExtensionPrivacyPage() {
   return (
-    <>
-      <MarketingNav />
-      <main className="mx-auto max-w-2xl px-4 sm:px-6 py-16">
-        <h1 className="font-serif text-4xl mb-2">shoplit browser extension — Privacy</h1>
+    <div className="mx-auto max-w-2xl px-4 sm:px-6 py-16">
+      <h1 className="font-serif text-4xl mb-2">shoplit browser extension — Privacy</h1>
         <p className="text-sm text-muted mb-8">Last updated: 2026-05-24</p>
 
         <h2 className="font-serif text-2xl mt-8 mb-2">What the extension does</h2>
@@ -63,8 +58,6 @@ export default function ExtensionPrivacyPage() {
         <p className="leading-relaxed text-ink">
           Questions about this policy: <a href="mailto:mayur.das4@gmail.com" className="text-accent underline underline-offset-2">mayur.das4@gmail.com</a>.
         </p>
-      </main>
-      <Footer />
-    </>
+    </div>
   );
 }
