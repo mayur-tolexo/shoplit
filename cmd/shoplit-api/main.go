@@ -18,6 +18,7 @@ import (
 	"github.com/mayur-tolexo/shoplit/internal/auth"
 	"github.com/mayur-tolexo/shoplit/internal/carts"
 	"github.com/mayur-tolexo/shoplit/internal/config"
+	"github.com/mayur-tolexo/shoplit/internal/creators"
 	"github.com/mayur-tolexo/shoplit/internal/db"
 	sqlcgen "github.com/mayur-tolexo/shoplit/internal/db/sqlc"
 	"github.com/mayur-tolexo/shoplit/internal/exttoken"
@@ -91,6 +92,7 @@ func run() error {
 	upsert := auth.NewUserUpsertFn(q)
 	fetcher := ogfetch.New(rc)
 	svc := carts.NewService(q)
+	creatorsSvc := creators.NewService(q)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, middleware.Recoverer)
@@ -117,6 +119,7 @@ func run() error {
 	// Public, unauthenticated read endpoints
 	r.Route("/api/public", func(r chi.Router) {
 		publicapi.RegisterRoutes(r, svc, sm)
+		creators.RegisterPublicRoutes(r, creatorsSvc, sm)
 		r.Post("/feedback", fb.Handler())
 	})
 
@@ -145,6 +148,7 @@ func run() error {
 		r.Get("/feedback", fb.ListHandler())
 		r.Post("/uploads", uploads.Handler(imageStore, uploads.NewRedisLimiter(rc, 30, time.Hour)))
 		carts.RegisterRoutes(r, svc, fetcher)
+		creators.RegisterRoutes(r, creatorsSvc)
 	})
 
 	srv := &http.Server{
