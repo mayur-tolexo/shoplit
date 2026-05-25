@@ -162,6 +162,27 @@ FROM click_events ce
 JOIN links l ON ce.link_id = l.id
 WHERE l.cart_id = $1 AND ce.occurred_at >= current_date - 6 AND ce.visitor_hash IS NOT NULL;
 
+-- name: AccountDailyViews :many
+-- Per-day view totals across all of a user's carts over the last 14 days.
+-- Only days with rows are returned; the service zero-fills the gaps.
+SELECT cv.day::date AS day, COALESCE(SUM(cv.views), 0)::bigint AS views
+FROM cart_views_daily cv
+JOIN carts c ON c.id = cv.cart_id
+WHERE c.user_id = $1 AND cv.day >= current_date - 13
+GROUP BY cv.day
+ORDER BY cv.day;
+
+-- name: AccountDailyClicks :many
+-- Per-day click totals across all of a user's cart links over the last 14 days.
+-- links.cart_id is nullable; the JOIN naturally drops non-cart (single) links.
+SELECT cd.day::date AS day, COALESCE(SUM(cd.clicks), 0)::bigint AS clicks
+FROM click_daily cd
+JOIN links l ON l.id = cd.link_id
+JOIN carts c ON c.id = l.cart_id
+WHERE c.user_id = $1 AND cd.day >= current_date - 13
+GROUP BY cd.day
+ORDER BY cd.day;
+
 -- ─── FOLLOWS / CREATORS ──────────────────────────────────────────────────────
 
 -- name: FollowCreator :exec

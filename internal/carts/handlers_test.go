@@ -102,6 +102,30 @@ func TestGETMe_ReturnsUser(t *testing.T) {
 	assert.Equal(t, "Test User", u["displayName"])
 }
 
+func TestGETInsights_Returns14DayDaily(t *testing.T) {
+	r, _ := setupHandlers(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/insights", nil)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var out struct {
+		Daily []struct {
+			Date   string `json:"date"`
+			Views  int    `json:"views"`
+			Clicks int    `json:"clicks"`
+		} `json:"daily"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &out))
+	require.Len(t, out.Daily, 14)
+	// Ascending by date, zero-filled (no activity seeded).
+	for i := 1; i < len(out.Daily); i++ {
+		assert.Less(t, out.Daily[i-1].Date, out.Daily[i].Date)
+	}
+	assert.Equal(t, 0, out.Daily[0].Views)
+	assert.Equal(t, 0, out.Daily[0].Clicks)
+}
+
 func TestPOSTCartItems_AddsExplicitProduct(t *testing.T) {
 	r, _ := setupHandlers(t)
 	// create cart

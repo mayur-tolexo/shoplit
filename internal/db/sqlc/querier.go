@@ -11,6 +11,12 @@ import (
 )
 
 type Querier interface {
+	// Per-day click totals across all of a user's cart links over the last 14 days.
+	// links.cart_id is nullable; the JOIN naturally drops non-cart (single) links.
+	AccountDailyClicks(ctx context.Context, userID int64) ([]AccountDailyClicksRow, error)
+	// Per-day view totals across all of a user's carts over the last 14 days.
+	// Only days with rows are returned; the service zero-fills the gaps.
+	AccountDailyViews(ctx context.Context, userID int64) ([]AccountDailyViewsRow, error)
 	// ─── CART ITEMS ────────────────────────────────────────────────────────────
 	AddCartItem(ctx context.Context, arg AddCartItemParams) (CartItem, error)
 	ArchiveCart(ctx context.Context, id int64) error

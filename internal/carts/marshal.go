@@ -97,6 +97,27 @@ func MarshalCart(c sqlcgen.Cart, owner sqlcgen.User, items []sqlcgen.ListCartIte
 	return out
 }
 
+// DailyStatJSON is the frontend-compatible JSON shape for a single day's stats.
+type DailyStatJSON struct {
+	Date   string `json:"date"`
+	Views  int    `json:"views"`
+	Clicks int    `json:"clicks"`
+}
+
+// MarshalDailyStats converts a DailyStat series into JSON shapes, formatting the
+// date as "YYYY-MM-DD". Always returns a non-nil slice so it serializes as [].
+func MarshalDailyStats(stats []DailyStat) []DailyStatJSON {
+	out := make([]DailyStatJSON, 0, len(stats))
+	for _, s := range stats {
+		out = append(out, DailyStatJSON{
+			Date:   s.Date.Format("2006-01-02"),
+			Views:  int(s.Views),
+			Clicks: int(s.Clicks),
+		})
+	}
+	return out
+}
+
 func intStr(i int64) string {
 	return strconv.FormatInt(i, 10)
 }
