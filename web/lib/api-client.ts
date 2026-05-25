@@ -100,6 +100,7 @@ export async function updateCart(id: string, patch: Partial<Cart>): Promise<Cart
   if (patch.title !== undefined) body.title = patch.title;
   if (patch.bio !== undefined) body.description = patch.bio;
   if (patch.coverImageUrl !== undefined) body.cover_image_url = patch.coverImageUrl;
+  if (patch.visibility !== undefined) body.visibility = patch.visibility;
   return jsonFetch<Cart>(`/api/v1/carts/${id}`, {
     method: "PATCH",
     body: JSON.stringify(body),

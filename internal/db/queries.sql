@@ -28,7 +28,9 @@ RETURNING *;
 SELECT * FROM carts WHERE id = $1 AND archived_at IS NULL;
 
 -- name: GetCartBySlug :one
-SELECT * FROM carts WHERE slug = $1 AND archived_at IS NULL AND is_public = true;
+-- No is_public/visibility filter here: the service gates private carts so the
+-- OWNER can still fetch their own. archived carts remain excluded.
+SELECT * FROM carts WHERE slug = $1 AND archived_at IS NULL;
 
 -- name: ListCartsByUser :many
 SELECT * FROM carts
@@ -53,6 +55,7 @@ UPDATE carts SET
   description     = COALESCE($3, description),
   cover_image_url = COALESCE($4, cover_image_url),
   is_public       = COALESCE($5, is_public),
+  visibility      = COALESCE($6, visibility),
   updated_at      = now()
 WHERE id = $1
 RETURNING *;

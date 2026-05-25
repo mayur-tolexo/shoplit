@@ -38,6 +38,7 @@ export interface Cart {
   bio?: string;
   coverImageUrl: string;
   accentHex: string;       // overrides --accent on /c/{slug}
+  visibility: "public" | "private";   // 'private' carts 404 for non-owners
   products: Product[];
   viewsLast7d: number;
   clicksLast7d: number;

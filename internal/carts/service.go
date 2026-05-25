@@ -110,6 +110,12 @@ func (s *Service) GetPublicCart(ctx context.Context, slug string, viewerUserID i
 	if err != nil {
 		return sqlcgen.Cart{}, nil, sqlcgen.User{}, err
 	}
+	// Private carts are visible only to their owner; everyone else gets a
+	// not-found (same as a nonexistent cart — no "this is private" leak).
+	// Fail closed: anything not explicitly "public" is treated as owner-only.
+	if cart.Visibility != "public" && viewerUserID != cart.UserID {
+		return sqlcgen.Cart{}, nil, sqlcgen.User{}, ErrNotFound
+	}
 	items, err := s.q.ListCartItems(ctx, cart.ID)
 	if err != nil {
 		return sqlcgen.Cart{}, nil, sqlcgen.User{}, err
@@ -140,6 +146,7 @@ type UpdatePatch struct {
 	Description   *string
 	CoverImageURL *string
 	IsPublic      *bool
+	Visibility    *string
 }
 
 // UpdateCart applies a partial patch to an owned cart and returns the updated row.
@@ -161,6 +168,7 @@ func (s *Service) UpdateCart(ctx context.Context, userID, cartID int64, patch Up
 		Description:   cart.Description,
 		CoverImageUrl: cart.CoverImageUrl,
 		IsPublic:      cart.IsPublic,
+		Visibility:    cart.Visibility,
 	}
 	if patch.Title != nil {
 		params.Title = *patch.Title
@@ -173,6 +181,9 @@ func (s *Service) UpdateCart(ctx context.Context, userID, cartID int64, patch Up
 	}
 	if patch.IsPublic != nil {
 		params.IsPublic = *patch.IsPublic
+	}
+	if patch.Visibility != nil {
+		params.Visibility = *patch.Visibility
 	}
 	return s.q.UpdateCart(ctx, params)
 }

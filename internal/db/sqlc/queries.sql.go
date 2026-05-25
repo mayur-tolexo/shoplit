@@ -135,7 +135,7 @@ const createCart = `-- name: CreateCart :one
 
 INSERT INTO carts (user_id, slug, title, description, cover_image_url, is_public)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, user_id, slug, title, description, cover_image_url, is_public, archived_at, created_at, updated_at
+RETURNING id, user_id, slug, title, description, cover_image_url, is_public, archived_at, created_at, updated_at, visibility
 `
 
 type CreateCartParams struct {
@@ -169,6 +169,7 @@ func (q *Queries) CreateCart(ctx context.Context, arg CreateCartParams) (Cart, e
 		&i.ArchivedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Visibility,
 	)
 	return i, err
 }
@@ -231,7 +232,7 @@ func (q *Queries) CreateLink(ctx context.Context, arg CreateLinkParams) (Link, e
 }
 
 const getCartByID = `-- name: GetCartByID :one
-SELECT id, user_id, slug, title, description, cover_image_url, is_public, archived_at, created_at, updated_at FROM carts WHERE id = $1 AND archived_at IS NULL
+SELECT id, user_id, slug, title, description, cover_image_url, is_public, archived_at, created_at, updated_at, visibility FROM carts WHERE id = $1 AND archived_at IS NULL
 `
 
 func (q *Queries) GetCartByID(ctx context.Context, id int64) (Cart, error) {
@@ -248,14 +249,17 @@ func (q *Queries) GetCartByID(ctx context.Context, id int64) (Cart, error) {
 		&i.ArchivedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Visibility,
 	)
 	return i, err
 }
 
 const getCartBySlug = `-- name: GetCartBySlug :one
-SELECT id, user_id, slug, title, description, cover_image_url, is_public, archived_at, created_at, updated_at FROM carts WHERE slug = $1 AND archived_at IS NULL AND is_public = true
+SELECT id, user_id, slug, title, description, cover_image_url, is_public, archived_at, created_at, updated_at, visibility FROM carts WHERE slug = $1 AND archived_at IS NULL
 `
 
+// No is_public/visibility filter here: the service gates private carts so the
+// OWNER can still fetch their own. archived carts remain excluded.
 func (q *Queries) GetCartBySlug(ctx context.Context, slug string) (Cart, error) {
 	row := q.db.QueryRow(ctx, getCartBySlug, slug)
 	var i Cart
@@ -270,6 +274,7 @@ func (q *Queries) GetCartBySlug(ctx context.Context, slug string) (Cart, error) 
 		&i.ArchivedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Visibility,
 	)
 	return i, err
 }
@@ -464,7 +469,7 @@ func (q *Queries) ListCartItems(ctx context.Context, cartID int64) ([]ListCartIt
 }
 
 const listCartsByUser = `-- name: ListCartsByUser :many
-SELECT id, user_id, slug, title, description, cover_image_url, is_public, archived_at, created_at, updated_at FROM carts
+SELECT id, user_id, slug, title, description, cover_image_url, is_public, archived_at, created_at, updated_at, visibility FROM carts
 WHERE user_id = $1 AND archived_at IS NULL
 ORDER BY updated_at DESC
 `
@@ -489,6 +494,7 @@ func (q *Queries) ListCartsByUser(ctx context.Context, userID int64) ([]Cart, er
 			&i.ArchivedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Visibility,
 		); err != nil {
 			return nil, err
 		}
@@ -625,9 +631,10 @@ UPDATE carts SET
   description     = COALESCE($3, description),
   cover_image_url = COALESCE($4, cover_image_url),
   is_public       = COALESCE($5, is_public),
+  visibility      = COALESCE($6, visibility),
   updated_at      = now()
 WHERE id = $1
-RETURNING id, user_id, slug, title, description, cover_image_url, is_public, archived_at, created_at, updated_at
+RETURNING id, user_id, slug, title, description, cover_image_url, is_public, archived_at, created_at, updated_at, visibility
 `
 
 type UpdateCartParams struct {
@@ -636,6 +643,7 @@ type UpdateCartParams struct {
 	Description   pgtype.Text `json:"description"`
 	CoverImageUrl pgtype.Text `json:"cover_image_url"`
 	IsPublic      bool        `json:"is_public"`
+	Visibility    string      `json:"visibility"`
 }
 
 func (q *Queries) UpdateCart(ctx context.Context, arg UpdateCartParams) (Cart, error) {
@@ -645,6 +653,7 @@ func (q *Queries) UpdateCart(ctx context.Context, arg UpdateCartParams) (Cart, e
 		arg.Description,
 		arg.CoverImageUrl,
 		arg.IsPublic,
+		arg.Visibility,
 	)
 	var i Cart
 	err := row.Scan(
@@ -658,6 +667,7 @@ func (q *Queries) UpdateCart(ctx context.Context, arg UpdateCartParams) (Cart, e
 		&i.ArchivedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Visibility,
 	)
 	return i, err
 }

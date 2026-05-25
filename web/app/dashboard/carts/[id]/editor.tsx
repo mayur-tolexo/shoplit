@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUp, ArrowDown, Check, ExternalLink, Eye, GripVertical, Pencil, Share2, Trash2, X } from "lucide-react";
+import { ArrowUp, ArrowDown, Check, ExternalLink, Eye, Globe, GripVertical, Lock, Pencil, Share2, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   DndContext,
@@ -286,6 +286,37 @@ export function CartEditor({ initialCart }: { initialCart: Cart }) {
 
           {/* SETTINGS / DANGER */}
           <EditorSection title="Settings">
+            {/* VISIBILITY */}
+            <div className="pb-4 mb-4 border-b border-rule">
+              <h3 className="text-sm font-medium mb-1">Visibility</h3>
+              <p className="text-sm text-muted mb-3">
+                {cart.visibility === "private"
+                  ? "Only you can open this cart. The share link won’t work for anyone else until you make it public."
+                  : "Anyone with the link can view this cart."}
+              </p>
+              <div className="inline-flex rounded-full border border-rule p-0.5 bg-cream" role="group" aria-label="Cart visibility">
+                <button
+                  type="button"
+                  aria-pressed={cart.visibility === "public"}
+                  onClick={() => cart.visibility !== "public" && patch({ visibility: "public" })}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                    cart.visibility === "public" ? "bg-ink text-cream" : "text-muted hover:text-ink"
+                  }`}
+                >
+                  <Globe size={14} aria-hidden /> Public
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={cart.visibility === "private"}
+                  onClick={() => cart.visibility !== "private" && patch({ visibility: "private" })}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                    cart.visibility === "private" ? "bg-ink text-cream" : "text-muted hover:text-ink"
+                  }`}
+                >
+                  <Lock size={14} aria-hidden /> Private
+                </button>
+              </div>
+            </div>
             <h3 className="text-sm font-medium mb-1">Delete this cart</h3>
             <p className="text-sm text-muted mb-3">
               Its share link will stop working and it&apos;ll disappear from your dashboard. This can&apos;t be undone.

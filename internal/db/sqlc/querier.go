@@ -27,6 +27,8 @@ type Querier interface {
 	// ─── LINKS ──────────────────────────────────────────────────────────────────
 	CreateLink(ctx context.Context, arg CreateLinkParams) (Link, error)
 	GetCartByID(ctx context.Context, id int64) (Cart, error)
+	// No is_public/visibility filter here: the service gates private carts so the
+	// OWNER can still fetch their own. archived carts remain excluded.
 	GetCartBySlug(ctx context.Context, slug string) (Cart, error)
 	GetExtensionTokenByHash(ctx context.Context, tokenHash string) (GetExtensionTokenByHashRow, error)
 	GetLinkBySlug(ctx context.Context, slug string) (Link, error)

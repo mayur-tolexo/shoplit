@@ -21,6 +21,7 @@ type Cart struct {
 	ArchivedAt    pgtype.Timestamptz `json:"archived_at"`
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	Visibility    string             `json:"visibility"`
 }
 
 type CartItem struct {
