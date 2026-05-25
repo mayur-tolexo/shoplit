@@ -61,6 +61,21 @@ When `SHOPLIT_S3_BUCKET` is set, the upload handler uses S3; otherwise it falls 
 to local disk (dev). URLs returned look like
 `https://shoplit-uploads-prod.s3.ap-southeast-2.amazonaws.com/<random>.jpg`.
 
+## Retention & upload limits (decided 2026-05-25)
+- **No expiry lifecycle.** Product/cover images must live as long as their cart,
+  so we deliberately do NOT auto-delete by age (a flat 30-day rule would break
+  images on older carts). Storage growth is controlled at intake instead.
+- **Upload limits (enforced server-side in `internal/uploads`):**
+  - **5 MB** max per image (`maxUploadBytes`), JPEG/PNG/WebP/GIF only.
+  - **30 uploads/hour per creator** (Redis fixed-window, `NewRedisLimiter`);
+    over the cap → HTTP 429. The web picker also pre-checks 5 MB client-side.
+- **Optional S3 hygiene rule** (no data loss, safe to add in the console):
+  Bucket → Management → Lifecycle rule → "Delete incomplete multipart uploads
+  after 7 days". Our uploads are single-part PutObject, so this is effectively a
+  no-op today — add it only as a best-practice belt.
+- The EC2 instance role has **`s3:PutObject` only** (no `DeleteObject`/lifecycle),
+  so neither the app nor a stray script can delete bucket objects.
+
 ## 5. (Optional) verify the role works, from the EC2 box
 ```
 aws sts get-caller-identity                 # shows the assumed role

@@ -18,10 +18,16 @@ export function ImageUploadButton({
 }) {
   const [uploading, setUploading] = useState(false);
 
+  const MAX_BYTES = 5 * 1024 * 1024; // mirrors the server's 5MB cap
+
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = ""; // allow re-picking the same file
     if (!file) return;
+    if (file.size > MAX_BYTES) {
+      toast.error("That photo is over 5MB — pick a smaller one.");
+      return;
+    }
     setUploading(true);
     try {
       onUploaded(await uploadImage(file));

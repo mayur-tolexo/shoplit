@@ -8,13 +8,16 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
+
+	"github.com/mayur-tolexo/shoplit/internal/auth"
 )
 
 const (
-	maxUploadBytes = 15 << 20 // 15 MiB — generous for a full-res phone photo.
-	sniffLen       = 512      // bytes http.DetectContentType needs.
+	maxUploadBytes = 5 << 20 // 5 MiB cap per image.
+	sniffLen       = 512     // bytes http.DetectContentType needs.
 )
 
 // extByType maps the sniffed content type to a safe, server-chosen extension.
@@ -29,13 +32,27 @@ var extByType = map[string]string{
 
 // Handler returns an http.HandlerFunc that accepts a multipart "file" field,
 // validates it is an allowed image, hands it to the Store with a random name,
-// and responds {"url":"<public url>"}. Mount it behind auth.
-func Handler(store Store) http.HandlerFunc {
+// and responds {"url":"<public url>"}. Mount it behind auth. When limiter is
+// non-nil, each creator is capped to its per-window allowance.
+func Handler(store Store, limiter Limiter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Per-creator rate limit (anti-abuse / S3 cost control). Fail open if
+		// the limiter errors so a Redis blip never blocks a legit upload.
+		if limiter != nil {
+			uid, _ := auth.UserIDFromContext(r.Context())
+			allowed, err := limiter.Allow(r.Context(), uid)
+			if err != nil {
+				slog.Warn("upload rate limiter error; allowing", "uid", uid, "err", err)
+			} else if !allowed {
+				http.Error(w, "upload limit reached — please try again later", http.StatusTooManyRequests)
+				return
+			}
+		}
+
 		// Cap the whole request body before reading anything.
 		r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes+1024)
 		if err := r.ParseMultipartForm(maxUploadBytes + 1024); err != nil {
-			http.Error(w, "file too large or malformed (max 15MB)", http.StatusRequestEntityTooLarge)
+			http.Error(w, "file too large or malformed (max 5MB)", http.StatusRequestEntityTooLarge)
 			return
 		}
 		file, _, err := r.FormFile("file")
@@ -51,7 +68,7 @@ func Handler(store Store) http.HandlerFunc {
 			return
 		}
 		if len(data) > maxUploadBytes {
-			http.Error(w, "image too large (max 15MB)", http.StatusRequestEntityTooLarge)
+			http.Error(w, "image too large (max 5MB)", http.StatusRequestEntityTooLarge)
 			return
 		}
 

@@ -143,7 +143,7 @@ func run() error {
 		r.Use(sm.RequireUser())
 		r.Post("/extension/token", exttoken.MintHandler(q))
 		r.Get("/feedback", fb.ListHandler())
-		r.Post("/uploads", uploads.Handler(imageStore))
+		r.Post("/uploads", uploads.Handler(imageStore, uploads.NewRedisLimiter(rc, 30, time.Hour)))
 		carts.RegisterRoutes(r, svc, fetcher)
 	})
 
