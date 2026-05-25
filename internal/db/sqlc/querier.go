@@ -70,11 +70,20 @@ type Querier interface {
 	ListFeedback(ctx context.Context) ([]Feedback, error)
 	// Public, non-archived carts owned by creators that $1 follows, newest first.
 	ListFollowingCartIDs(ctx context.Context, arg ListFollowingCartIDsParams) ([]Cart, error)
+	// The 20 most recent public, non-archived carts from creators the viewer ($1)
+	// follows, newest first, each flagged unread when created after seen_at.
+	ListNotifications(ctx context.Context, id int64) ([]ListNotificationsRow, error)
 	ListPublicCartsByUser(ctx context.Context, userID int64) ([]Cart, error)
 	// Distinct cover images the user has used across their carts, most-recent
 	// first — powers the "your covers" section of the cover picker.
 	ListUserCoverImages(ctx context.Context, userID int64) ([]ListUserCoverImagesRow, error)
+	// Mark all notifications seen for the viewer ($1) by advancing seen_at to now().
+	MarkNotificationsSeen(ctx context.Context, id int64) error
 	NextCartItemPosition(ctx context.Context, cartID int64) (int32, error)
+	// ─── NOTIFICATIONS (new-cart bell) ────────────────────────────────────────────
+	// Count of public, non-archived carts from creators the viewer ($1) follows
+	// that were created after the viewer's notifications_seen_at ("unread").
+	NotificationUnreadCount(ctx context.Context, followerID int64) (int64, error)
 	RemoveCartItem(ctx context.Context, arg RemoveCartItemParams) error
 	ReorderCartItem(ctx context.Context, arg ReorderCartItemParams) error
 	// Creators (>=1 public, non-archived cart) whose handle or display name matches

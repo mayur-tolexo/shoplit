@@ -104,13 +104,14 @@ type OtpAttempt struct {
 }
 
 type User struct {
-	ID          int64              `json:"id"`
-	Email       pgtype.Text        `json:"email"`
-	Phone       pgtype.Text        `json:"phone"`
-	GoogleSub   pgtype.Text        `json:"google_sub"`
-	DisplayName string             `json:"display_name"`
-	AvatarUrl   pgtype.Text        `json:"avatar_url"`
-	Handle      pgtype.Text        `json:"handle"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	BannedAt    pgtype.Timestamptz `json:"banned_at"`
+	ID                  int64              `json:"id"`
+	Email               pgtype.Text        `json:"email"`
+	Phone               pgtype.Text        `json:"phone"`
+	GoogleSub           pgtype.Text        `json:"google_sub"`
+	DisplayName         string             `json:"display_name"`
+	AvatarUrl           pgtype.Text        `json:"avatar_url"`
+	Handle              pgtype.Text        `json:"handle"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	BannedAt            pgtype.Timestamptz `json:"banned_at"`
+	NotificationsSeenAt pgtype.Timestamptz `json:"notifications_seen_at"`
 }

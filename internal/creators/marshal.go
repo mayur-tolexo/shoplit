@@ -1,6 +1,8 @@
 package creators
 
 import (
+	"time"
+
 	"github.com/jackc/pgx/v5/pgtype"
 	sqlcgen "github.com/mayur-tolexo/shoplit/internal/db/sqlc"
 )
@@ -50,6 +52,38 @@ func MarshalCreatorProfile(u sqlcgen.User, cartCount, followerCount int, isFollo
 		IsFollowing:   isFollowing,
 		IsSelf:        isSelf,
 	}
+}
+
+// NotificationItemJSON is the frontend-compatible JSON shape for one new-cart
+// notification. Field names are normative (shared with the Next.js
+// NotificationItem type).
+type NotificationItemJSON struct {
+	CartSlug           string `json:"cartSlug"`
+	CartTitle          string `json:"cartTitle"`
+	CreatorHandle      string `json:"creatorHandle"`
+	CreatorDisplayName string `json:"creatorDisplayName"`
+	CreatorAvatarURL   string `json:"creatorAvatarUrl"`
+	CreatedAt          string `json:"createdAt"`
+	Unread             bool   `json:"unread"`
+}
+
+// MarshalNotifications converts ListNotifications rows into the frontend
+// NotificationItemJSON shape: null pg text → "", timestamps → RFC3339. The
+// returned slice is non-nil (empty for no rows) so the handler can write [].
+func MarshalNotifications(rows []sqlcgen.ListNotificationsRow) []NotificationItemJSON {
+	out := make([]NotificationItemJSON, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, NotificationItemJSON{
+			CartSlug:           r.Slug,
+			CartTitle:          r.Title,
+			CreatorHandle:      pgTextStr(r.Handle),
+			CreatorDisplayName: r.DisplayName,
+			CreatorAvatarURL:   pgTextStr(r.AvatarUrl),
+			CreatedAt:          r.CreatedAt.Time.Format(time.RFC3339),
+			Unread:             r.Unread,
+		})
+	}
+	return out
 }
 
 func pgTextStr(t pgtype.Text) string {
