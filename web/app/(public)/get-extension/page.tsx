@@ -2,18 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingNav } from "@/components/marketing-nav";
 import { Footer } from "@/components/footer";
-import { Download, Puzzle, Monitor, Smartphone } from "lucide-react";
+import { Puzzle, Monitor, Smartphone } from "lucide-react";
+
+const STORE_URL = "https://chromewebstore.google.com/detail/shoplit-%E2%80%94-add-to-cart/dplbbiamddaaimhjennfncbpbnkfconn";
 
 export const metadata: Metadata = {
-  title: "Get the shoplit extension (beta) · shoplit",
-  description: "Add products to your shoplit cart in one click from Amazon, Myntra, Nykaa, Flipkart & AJIO.",
+  title: "Get the shoplit extension · shoplit",
+  description: "Add products to your shoplit cart in one click from Amazon, Myntra, Nykaa, Flipkart & AJIO — free on the Chrome Web Store.",
 };
 
 const desktopSteps = [
-  { t: "Download & unzip", b: "Download the file below and unzip it — you'll get a folder called shoplit-extension." },
-  { t: "Open Chrome extensions", b: "Go to chrome://extensions and turn on Developer mode (top-right toggle)." },
-  { t: "Load it", b: "Click “Load unpacked” and select the unzipped shoplit-extension folder. Pin the shoplit icon." },
-  { t: "Connect your account", b: "Open the connect page, copy the code shown there, and paste it into the extension's popup → Connect." },
+  { t: "Add it from the Chrome Web Store", b: "Tap the button above and choose “Add to Chrome”. Works in Chrome, Edge and Brave. Pin the shoplit icon so it's one click away." },
+  { t: "Connect your account", b: "Open the connect page while signed in to shoplit — the extension links automatically, no code to copy or paste." },
   { t: "Start adding", b: "Open any product on Amazon, Myntra, Nykaa, Flipkart or AJIO and hit “＋ Add to shoplit”." },
 ];
 
@@ -36,11 +36,11 @@ export default function GetExtensionPage() {
           >
             <Puzzle size={26} />
           </span>
-          <p className="text-sm text-accent uppercase tracking-widest font-medium mb-2">Browser extension · Beta</p>
+          <p className="text-sm text-accent uppercase tracking-widest font-medium mb-2">Browser extension</p>
           <h1 className="font-serif text-4xl sm:text-5xl leading-[1.05] mb-3">Add to shoplit in one click</h1>
           <p className="text-muted text-lg leading-relaxed">
-            Grab products straight from the product page — no copy-pasting links. It&apos;s pending
-            Chrome Web Store review; until then, set it up manually (a minute on desktop).
+            Grab products straight from the product page — no copy-pasting links. Now live and free
+            on the Chrome Web Store.
           </p>
         </div>
 
@@ -51,11 +51,12 @@ export default function GetExtensionPage() {
             <h2 className="font-serif text-2xl">On desktop (Chrome, Edge, Brave)</h2>
           </div>
           <a
-            href="/shoplit-extension.zip"
-            download
+            href={STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-full bg-ink text-cream px-6 py-3 font-medium hover:opacity-90 transition-opacity"
           >
-            <Download size={18} /> Download for Chrome
+            <Puzzle size={18} /> Add to Chrome — free
           </a>
           <ol className="mt-7 space-y-5">
             {desktopSteps.map((s, i) => (
@@ -105,13 +106,16 @@ export default function GetExtensionPage() {
             Add a product by link →
           </Link>
           <p className="text-xs text-muted mt-6 leading-relaxed">
-            Power users on Android: <strong className="text-ink">Kiwi Browser</strong> does support Chrome
-            extensions — you can load the same downloaded folder there via its Extensions menu.
+            Power users on Android: <strong className="text-ink">Kiwi Browser</strong> supports Chrome
+            extensions — you can install shoplit from the Chrome Web Store there too.
           </p>
         </section>
 
-        <p className="text-center text-xs text-muted mt-6">
-          Once it&apos;s approved on the Chrome Web Store, desktop install becomes a single click — we&apos;ll update this page.
+        <p className="text-center text-sm text-muted mt-6">
+          On a phone?{" "}
+          <Link href="/mobile" className="text-accent underline underline-offset-4 hover:opacity-80">
+            See the full mobile guide →
+          </Link>
         </p>
       </main>
       <Footer />

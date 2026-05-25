@@ -5,7 +5,7 @@ import { Footer } from "@/components/footer";
 import { RevealOnScroll } from "@/components/reveal-on-scroll";
 import {
   Lock, ImageUp, UsersRound, Search, Rss, Heart, Star,
-  Wallet, BellRing, FolderHeart, Puzzle, ArrowRight,
+  Wallet, BellRing, FolderHeart, Puzzle, Smartphone, ArrowRight,
 } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -13,9 +13,10 @@ export const metadata: Metadata = {
   description: "What's shipping next on shoplit — and tell us what to build.",
 };
 
-type Status = "Beta" | "Soon" | "Planned" | "Exploring";
+type Status = "Live" | "Beta" | "Soon" | "Planned" | "Exploring";
 
 const STATUS_STYLE: Record<Status, string> = {
+  Live: "bg-ink text-cream",
   Beta: "bg-accent text-cream",
   Soon: "bg-accent/15 text-accent",
   Planned: "bg-ink/10 text-ink",
@@ -30,12 +31,14 @@ interface Item {
 }
 
 const ITEMS: Item[] = [
-  { icon: <Puzzle size={20} />, title: "Browser extension", status: "Beta",
-    body: "Add products to your cart in one click from Amazon, Myntra, Nykaa, Flipkart & AJIO — straight from the product page." },
+  { icon: <Puzzle size={20} />, title: "Browser extension", status: "Live",
+    body: "Add products to your cart in one click from Amazon, Myntra, Nykaa, Flipkart & AJIO — straight from the product page. Free on the Chrome Web Store." },
+  { icon: <Smartphone size={20} />, title: "Add from your phone", status: "Live",
+    body: "No desktop needed — share a product from any shopping app into shoplit, or paste the link. Install shoplit to your home screen and add on the go." },
+  { icon: <ImageUp size={20} />, title: "Upload your own photos", status: "Live",
+    body: "Add product and cover images straight from your phone or computer — tap “📷 Add a photo”, no image URL needed." },
   { icon: <Lock size={20} />, title: "Public & private carts", status: "Soon",
     body: "Decide who can see each cart — keep some public, others just for you until you're ready to share." },
-  { icon: <ImageUp size={20} />, title: "Upload your own cover", status: "Soon",
-    body: "Drag-and-drop your own cover images, not just paste a URL — make every cart unmistakably yours." },
   { icon: <UsersRound size={20} />, title: "Share with select people", status: "Soon",
     body: "Private links you can share with a chosen few — perfect for client edits or close-friends drops." },
   { icon: <Wallet size={20} />, title: "Earnings dashboard", status: "Planned",
