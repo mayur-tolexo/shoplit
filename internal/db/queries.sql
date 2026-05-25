@@ -107,8 +107,8 @@ UPDATE cart_items SET position = $3 WHERE id = $1 AND cart_id = $2;
 -- ─── ANALYTICS (writes) ────────────────────────────────────────────────────
 
 -- name: InsertClickEvent :exec
-INSERT INTO click_events (link_id, occurred_at, country_code, user_agent_kind, referer_host)
-VALUES ($1, now(), $2, $3, $4);
+INSERT INTO click_events (link_id, occurred_at, country_code, user_agent_kind, referer_host, visitor_hash)
+VALUES ($1, now(), $2, $3, $4, $5);
 
 -- name: BumpClickDaily :exec
 INSERT INTO click_daily (link_id, day, clicks)
@@ -152,3 +152,9 @@ SELECT COALESCE(SUM(cd.clicks), 0)::bigint AS clicks
 FROM click_daily cd
 JOIN links l ON cd.link_id = l.id
 WHERE l.cart_id = $1 AND cd.day >= current_date - 6;
+
+-- name: CartReach7d :one
+SELECT COUNT(DISTINCT visitor_hash)::bigint AS reach
+FROM click_events ce
+JOIN links l ON ce.link_id = l.id
+WHERE l.cart_id = $1 AND ce.occurred_at >= current_date - 6 AND ce.visitor_hash IS NOT NULL;
