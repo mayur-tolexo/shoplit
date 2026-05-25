@@ -16,7 +16,17 @@
 // API_BASE comes from NEXT_PUBLIC_API_BASE_URL (available in both server and
 // client bundles); defaults to http://localhost:8080.
 
-import type { Cart, Creator, DailyStat, OGResult, Product, User } from "./types";
+import type {
+  AdminOverview,
+  AdminUser,
+  AdminUserCart,
+  Cart,
+  Creator,
+  DailyStat,
+  OGResult,
+  Product,
+  User,
+} from "./types";
 
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
@@ -279,6 +289,23 @@ export async function uploadImage(file: File): Promise<string> {
   const data = (await res.json()) as { url: string };
   // S3 returns an absolute URL; the dev disk store returns a relative path.
   return /^https?:\/\//.test(data.url) ? data.url : API_BASE + data.url;
+}
+
+// ─── ADMIN (read-only) ──────────────────────────────────────────────────────
+// All three require an admin session; the backend returns 403 otherwise (401 if
+// unauthenticated). We forward the cookie and let ApiError propagate so the
+// page-level gate can notFound()/redirect.
+
+export async function getAdminOverview(opts?: AuthOpts): Promise<AdminOverview> {
+  return jsonFetch<AdminOverview>("/api/v1/admin/overview", opts);
+}
+
+export async function getAdminUsers(opts?: AuthOpts): Promise<AdminUser[]> {
+  return jsonFetch<AdminUser[]>("/api/v1/admin/users", opts);
+}
+
+export async function getAdminUserCarts(id: string, opts?: AuthOpts): Promise<AdminUserCart[]> {
+  return jsonFetch<AdminUserCart[]>(`/api/v1/admin/users/${id}/carts`, opts);
 }
 
 export async function submitFeedback(input: { message: string; email?: string; name?: string; page?: string }): Promise<void> {

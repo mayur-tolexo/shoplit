@@ -2,6 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   API_BASE,
   followCreator,
+  getAdminOverview,
+  getAdminUserCarts,
+  getAdminUsers,
   getCreatorProfile,
   getFollowingFeed,
   getInsights,
@@ -116,5 +119,26 @@ describe("api-client request shapes", () => {
     mockFetch({ body: {} });
     const r = await getInsights();
     expect(r).toEqual([]);
+  });
+
+  it("getAdminOverview → GET /api/v1/admin/overview", async () => {
+    const calls = mockFetch({ body: {} });
+    await getAdminOverview();
+    expect(calls[0].url).toBe(`${API_BASE}/api/v1/admin/overview`);
+    expect(calls[0].init.method ?? "GET").toBe("GET");
+  });
+
+  it("getAdminUsers → GET /api/v1/admin/users", async () => {
+    const calls = mockFetch({ body: [] });
+    await getAdminUsers();
+    expect(calls[0].url).toBe(`${API_BASE}/api/v1/admin/users`);
+    expect(calls[0].init.method ?? "GET").toBe("GET");
+  });
+
+  it("getAdminUserCarts → GET /api/v1/admin/users/{id}/carts", async () => {
+    const calls = mockFetch({ body: [] });
+    await getAdminUserCarts("42");
+    expect(calls[0].url).toBe(`${API_BASE}/api/v1/admin/users/42/carts`);
+    expect(calls[0].init.method ?? "GET").toBe("GET");
   });
 });
