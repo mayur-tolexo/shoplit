@@ -33,6 +33,11 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  // metadataBase resolves relative metadata URLs — crucially the per-route
+  // opengraph-image cards — to an absolute URL. Without it Next falls back to
+  // http://localhost:3000, which makes every shared link's preview unfetchable.
+  // In prod NEXT_PUBLIC_API_BASE_URL is the public origin (https://shoplit.in).
+  metadataBase: new URL(process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000"),
   title: "shoplit",
   description: "Build a curated cart of products from Amazon, Myntra, Nykaa and more, then share it with a short URL.",
   manifest: "/manifest.webmanifest",
