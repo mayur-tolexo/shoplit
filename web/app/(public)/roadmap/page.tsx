@@ -29,24 +29,30 @@ interface Item {
 }
 
 const ITEMS: Item[] = [
+  // ── Live ────────────────────────────────────────────────────────────────
   { icon: <Puzzle size={20} />, title: "Browser extension", status: "Live",
     body: "Add products to your cart in one click from Amazon, Myntra, Nykaa, Flipkart & AJIO — straight from the product page. Free on the Chrome Web Store." },
   { icon: <Smartphone size={20} />, title: "Add from your phone", status: "Live",
     body: "No desktop needed — share a product from any shopping app into shoplit, or paste the link. Install shoplit to your home screen and add on the go." },
   { icon: <ImageUp size={20} />, title: "Upload your own photos", status: "Live",
     body: "Add product and cover images straight from your phone or computer — tap “📷 Add a photo”, no image URL needed." },
-  { icon: <Lock size={20} />, title: "Public & private carts", status: "Soon",
+  { icon: <Lock size={20} />, title: "Public & private carts", status: "Live",
     body: "Decide who can see each cart — keep some public, others just for you until you're ready to share." },
+  { icon: <Search size={20} />, title: "Discover creators", status: "Live",
+    body: "Search creators and browse their carts — a place to find taste you trust before you shop." },
+  { icon: <UsersRound size={20} />, title: "Follow creators", status: "Live",
+    body: "Follow your favourites — their newest carts land straight in your feed." },
+  { icon: <Rss size={20} />, title: "Your feed", status: "Live",
+    body: "A home feed of the freshest carts from the creators you follow, newest first." },
+  // ── Soon ────────────────────────────────────────────────────────────────
   { icon: <UsersRound size={20} />, title: "Share with select people", status: "Soon",
     body: "Private links you can share with a chosen few — perfect for client edits or close-friends drops." },
+  // ── Planned ───────────────────────────────────────────────────────────────
   { icon: <Wallet size={20} />, title: "Earnings dashboard", status: "Planned",
     body: "See clicks, conversions and affiliate earnings per cart and product — know what's working." },
-  { icon: <Search size={20} />, title: "Discover creators", status: "Exploring",
-    body: "Search creators and browse their carts — a place to find taste you trust before you shop." },
-  { icon: <UsersRound size={20} />, title: "Follow creators", status: "Exploring",
-    body: "Follow your favourites and get notified when they drop a new cart or product." },
-  { icon: <Rss size={20} />, title: "Your feed", status: "Exploring",
-    body: "A home feed of fresh carts and finds from the creators you follow." },
+  { icon: <BellRing size={20} />, title: "New-cart notifications", status: "Planned",
+    body: "Get notified the moment a creator you follow drops a new cart — so you never miss a fresh find." },
+  // ── Exploring ─────────────────────────────────────────────────────────────
   { icon: <Heart size={20} />, title: "Wishlists", status: "Exploring",
     body: "Save products you love from any cart into your own wishlist to shop later." },
   { icon: <Star size={20} />, title: "Reviews & ratings", status: "Exploring",

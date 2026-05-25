@@ -77,7 +77,7 @@ export function AppSidebar({ user }: { user: User | null }) {
         )}
       </SheetTrigger>
 
-      <SheetContent side="left" className="flex flex-col gap-0 p-0">
+      <SheetContent side="right" className="flex flex-col gap-0 p-0">
         {user ? (
           <>
             <SheetHeader className="border-b border-rule p-6 pr-12">
