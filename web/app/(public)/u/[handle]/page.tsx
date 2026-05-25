@@ -22,11 +22,11 @@ export async function generateMetadata({
     description: `${creator.displayName} on shoplit — ${creator.cartCount} ${
       creator.cartCount === 1 ? "cart" : "carts"
     }.`,
+    // og:image / twitter:image come from the colocated opengraph-image.tsx
+    // (branded 1200×630 profile card), so no manual openGraph.images here.
     openGraph: {
       title: `@${creator.handle} · shoplit`,
       description: `${creator.displayName} on shoplit.`,
-      // Only advertise an absolute avatar as the social-preview image.
-      ...(/^https?:\/\//.test(creator.avatarUrl) ? { images: [{ url: creator.avatarUrl }] } : {}),
     },
   };
 }

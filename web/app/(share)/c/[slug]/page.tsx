@@ -18,13 +18,12 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   return {
     title: `${cart.title} · ${cart.ownerDisplayName}`,
     description: cart.bio ?? `${cart.products.length} curated products from ${cart.ownerDisplayName}.`,
+    // og:image / twitter:image are supplied automatically by the colocated
+    // opengraph-image.tsx (the file convention generates a branded 1200×630
+    // card), so we no longer set openGraph.images here.
     openGraph: {
       title: cart.title,
       description: cart.bio ?? "",
-      // Only advertise a social-preview image for an absolute cover URL. The
-      // gradient fallback is a CSS effect, and curated covers are relative
-      // asset paths — neither is a shareable absolute image URL.
-      ...(/^https?:\/\//.test(cart.coverImageUrl) ? { images: [{ url: cart.coverImageUrl }] } : {}),
     },
   };
 }
